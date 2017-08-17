@@ -163,6 +163,132 @@ static int setControl(int fd, int type, int value) {
     return 0;
 }
 
+// YUYV, aka YUV422, to RGB
+// from http://pastebin.com/mDcwqJV3
+static inline
+void saturate(int* value, int min_val, int max_val)
+{
+    if (*value < min_val) *value = min_val;
+    if (*value > max_val) *value = max_val;
+}
+
+static int bgr24ToBgr24(const int width, const int height,
+                        const void *const src, void *const dst)
+{
+    memcpy(dst, src, width * height * 3);
+    return 0;
+}
+
+// destination format AR_PIX_FORMAT_BGRA
+static void yuyvToBgr32(void const *src, int width, int height, void *dst)
+{
+    unsigned char *yuyv_image = (unsigned char*) src;
+    unsigned char *rgb_image = (unsigned char*) dst;
+    const int K1 = (int)(1.402f * (1 << 16));
+    const int K2 = (int)(0.714f * (1 << 16));
+    const int K3 = (int)(0.334f * (1 << 16));
+    const int K4 = (int)(1.772f * (1 << 16));
+    
+    typedef unsigned char T;
+    T* out_ptr = &rgb_image[0];
+    const T a = 0xff;
+    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
+    int x, y;
+    for (y=0; y<height; y++) {
+        const T* src = yuyv_image + pitch * y;
+        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
+            T Y1 = src[x + 0];
+            T U  = src[x + 1];
+            T Y2 = src[x + 2];
+            T V  = src[x + 3];
+            
+            char uf = U - 128;
+            char vf = V - 128;
+            
+            int R = Y1 + (K1*vf >> 16);
+            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
+            int B = Y1 + (K4*uf >> 16);
+            
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+            
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+            *out_ptr++ = a;
+            
+            R = Y2 + (K1*vf >> 16);
+            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
+            B = Y2 + (K4*uf >> 16);
+            
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+            
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+            *out_ptr++ = a;
+        }
+        
+    }
+    
+}
+
+// destination format AR_PIX_FORMAT_BGR
+static void yuyvToBgr24(void const *src, int width, int height, void *dst)
+{
+    unsigned char *yuyv_image = (unsigned char*) src;
+    unsigned char *rgb_image = (unsigned char*) dst;
+    const int K1 = (int)(1.402f * (1 << 16));
+    const int K2 = (int)(0.714f * (1 << 16));
+    const int K3 = (int)(0.334f * (1 << 16));
+    const int K4 = (int)(1.772f * (1 << 16));
+    
+    typedef unsigned char T;
+    T* out_ptr = &rgb_image[0];
+    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
+    int x, y;
+    for (y=0; y<height; y++) {
+        const T* src = yuyv_image + pitch * y;
+        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
+            T Y1 = src[x + 0];
+            T U  = src[x + 1];
+            T Y2 = src[x + 2];
+            T V  = src[x + 3];
+            
+            char uf = U - 128;
+            char vf = V - 128;
+            
+            int R = Y1 + (K1*vf >> 16);
+            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
+            int B = Y1 + (K4*uf >> 16);
+            
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+            
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+            
+            R = Y2 + (K1*vf >> 16);
+            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
+            B = Y2 + (K4*uf >> 16);
+            
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+            
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+        }
+        
+    }
+}
+
 /*-------------------------------------------*/
 
 int ar2VideoDispOptionV4L2( void )
@@ -424,6 +550,30 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     vid->palette = fmt.fmt.pix.pixelformat;
     vid->width = fmt.fmt.pix.width;
     vid->height = fmt.fmt.pix.height;
+
+    switch (vid->palette) {
+#if defined(AR_PIXEL_FORMAT_RGBA)
+#else
+        case V4L2_PIX_FMT_BGR24:
+            vid->toArPixelFormat = bgr24ToBgr24;
+            break;
+#endif
+
+        case V4L2_PIX_FMT_YUYV:
+#if defined(AR_PIXEL_FORMAT_RGBA)
+            vid->toArPixelFormat = yuyvToBgr32;
+#else
+            vid->toArPixelFormat = yuyvToBgr24;
+#endif
+            break;
+
+        default:
+            close(vid->fd);
+            free(vid);
+            ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
+                   "internal pixel format.\n");
+            return NULL;
+    }
     
     if (vid->debug) {
         ARLOGe("  Width: %d\n", fmt.fmt.pix.width);
@@ -666,124 +816,6 @@ int ar2VideoCapStopV4L2( AR2VideoParamV4L2T *vid )
     return 0;
 }
 
-// YUYV, aka YUV422, to RGB
-// from http://pastebin.com/mDcwqJV3
-static inline
-void saturate(int* value, int min_val, int max_val)
-{
-    if (*value < min_val) *value = min_val;
-    if (*value > max_val) *value = max_val;
-}
-
-// destination format AR_PIX_FORMAT_BGRA
-static void yuyv_to_rgb32(int width, int height, const void *src, void *dst)
-{
-    unsigned char *yuyv_image = (unsigned char*) src;
-    unsigned char *rgb_image = (unsigned char*) dst;
-    const int K1 = (int)(1.402f * (1 << 16));
-    const int K2 = (int)(0.714f * (1 << 16));
-    const int K3 = (int)(0.334f * (1 << 16));
-    const int K4 = (int)(1.772f * (1 << 16));
-    
-    typedef unsigned char T;
-    T* out_ptr = &rgb_image[0];
-    const T a = 0xff;
-    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
-    int x, y;
-    for (y=0; y<height; y++) {
-        const T* src = yuyv_image + pitch * y;
-        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
-            T Y1 = src[x + 0];
-            T U  = src[x + 1];
-            T Y2 = src[x + 2];
-            T V  = src[x + 3];
-            
-            char uf = U - 128;
-            char vf = V - 128;
-            
-            int R = Y1 + (K1*vf >> 16);
-            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
-            int B = Y1 + (K4*uf >> 16);
-            
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-            
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-            *out_ptr++ = a;
-            
-            R = Y2 + (K1*vf >> 16);
-            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
-            B = Y2 + (K4*uf >> 16);
-            
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-            
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-            *out_ptr++ = a;
-        }
-        
-    }
-    
-}
-
-// destination format AR_PIX_FORMAT_BGR
-static void yuyv_to_rgb24(int width, int height, const void *src, void *dst)
-{
-    unsigned char *yuyv_image = (unsigned char*) src;
-    unsigned char *rgb_image = (unsigned char*) dst;
-    const int K1 = (int)(1.402f * (1 << 16));
-    const int K2 = (int)(0.714f * (1 << 16));
-    const int K3 = (int)(0.334f * (1 << 16));
-    const int K4 = (int)(1.772f * (1 << 16));
-    
-    typedef unsigned char T;
-    T* out_ptr = &rgb_image[0];
-    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
-    int x, y;
-    for (y=0; y<height; y++) {
-        const T* src = yuyv_image + pitch * y;
-        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
-            T Y1 = src[x + 0];
-            T U  = src[x + 1];
-            T Y2 = src[x + 2];
-            T V  = src[x + 3];
-            
-            char uf = U - 128;
-            char vf = V - 128;
-            
-            int R = Y1 + (K1*vf >> 16);
-            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
-            int B = Y1 + (K4*uf >> 16);
-            
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-            
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-            
-            R = Y2 + (K1*vf >> 16);
-            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
-            B = Y2 + (K4*uf >> 16);
-            
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-            
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-        }
-        
-    }
-}
 
 AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
 {
@@ -811,19 +843,16 @@ AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
     buffer = (ARUint8*)vid->buffers[buf.index].start;
     vid->video_cont_num = buf.index;
     
-    // TODO: Add other video format conversions.
-    if (vid->palette == V4L2_PIX_FMT_YUYV) {
-#if defined(AR_PIX_FORMAT_BGRA)
-        yuyv_to_rgb32(vid->width, vid->height, buffer, vid->videoBuffer);
-#else
-        yuyv_to_rgb24(vid->width, vid->height, buffer, vid->videoBuffer);
-#endif
-        out->buff = vid->videoBuffer;
-        out->time_sec = buf.timestamp.tv_sec;
-        out->time_usec = buf.timestamp.tv_usec; 
-        out->fillFlag = 1;
-        out->buffLuma = NULL;
+    if (vid->toArPixelFormat(vid->width, vid->height, buffer,
+                             vid->videoBuffer) != 0) {
+        return NULL;
     }
+
+    out->buff = vid->videoBuffer;
+    out->time_sec = buf.timestamp.tv_sec;
+    out->time_usec = buf.timestamp.tv_usec;
+    out->fillFlag = 1;
+    out->buffLuma = NULL;
     
     struct v4l2_buffer buf_next;
     memset(&buf_next, 0, sizeof(buf_next));

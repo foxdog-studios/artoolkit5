@@ -100,6 +100,8 @@ typedef struct {
     int                    video_cont_num;
     ARUint8                *videoBuffer;
 
+    int (*toArPixelFormat)(int width, int height, const void *src, void *dst);
+
     pthread_t              capture;
     AR2VideoBufferV4L2T    buffer;
     
