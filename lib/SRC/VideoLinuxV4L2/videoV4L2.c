@@ -180,7 +180,7 @@ static int bgr24ToBgr24(const int width, const int height,
 }
 
 // destination format AR_PIX_FORMAT_BGRA
-static void yuyvToBgr32(void const *src, int width, int height, void *dst)
+static int yuyvToBgr32(int width, int height, const void *src, void *dst)
 {
     unsigned char *yuyv_image = (unsigned char*) src;
     unsigned char *rgb_image = (unsigned char*) dst;
@@ -233,11 +233,12 @@ static void yuyvToBgr32(void const *src, int width, int height, void *dst)
         }
         
     }
-    
+
+    return 0;
 }
 
 // destination format AR_PIX_FORMAT_BGR
-static void yuyvToBgr24(void const *src, int width, int height, void *dst)
+static int yuyvToBgr24(int width, int height, const void *src, void *dst)
 {
     unsigned char *yuyv_image = (unsigned char*) src;
     unsigned char *rgb_image = (unsigned char*) dst;
@@ -287,6 +288,8 @@ static void yuyvToBgr24(void const *src, int width, int height, void *dst)
         }
         
     }
+
+    return 0;
 }
 
 /*-------------------------------------------*/
