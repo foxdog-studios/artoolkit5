@@ -56,6 +56,7 @@
 #include <linux/videodev2.h>
 #include <AR/ar.h>
 #include <AR/video.h>
+#include <jpeglib.h>
 
 
 
@@ -70,41 +71,49 @@ static int xioctl(int fd, int request, void *arg)
 
 #define MAXCHANNEL   10
 
-static void printPalette(int p) {
-    switch (p) {
-            //YUV formats
-        case (V4L2_PIX_FMT_GREY): ARLOGi("  Pix Fmt: Grey\n"); break;
-        case (V4L2_PIX_FMT_YUYV): ARLOGi("  Pix Fmt: YUYV\n"); break;
-        case (V4L2_PIX_FMT_UYVY): ARLOGi("  Pix Fmt: UYVY\n"); break;
-        case (V4L2_PIX_FMT_Y41P): ARLOGi("  Pix Fmt: Y41P\n"); break;
-        case (V4L2_PIX_FMT_YVU420): ARLOGi("  Pix Fmt: YVU420\n"); break;
-        case (V4L2_PIX_FMT_YVU410): ARLOGi("  Pix Fmt: YVU410\n"); break;
-        case (V4L2_PIX_FMT_YUV422P): ARLOGi("  Pix Fmt: YUV422P\n"); break;
-        case (V4L2_PIX_FMT_YUV411P): ARLOGi("  Pix Fmt: YUV411P\n"); break;
-        case (V4L2_PIX_FMT_NV12): ARLOGi("  Pix Fmt: NV12\n"); break;
-        case (V4L2_PIX_FMT_NV21): ARLOGi("  Pix Fmt: NV21\n"); break;
-            // RGB formats
-        case (V4L2_PIX_FMT_RGB332): ARLOGi("  Pix Fmt: RGB332\n"); break;
-        case (V4L2_PIX_FMT_RGB555): ARLOGi("  Pix Fmt: RGB555\n"); break;
-        case (V4L2_PIX_FMT_RGB565): ARLOGi("  Pix Fmt: RGB565\n"); break;
-        case (V4L2_PIX_FMT_RGB555X): ARLOGi("  Pix Fmt: RGB555X\n"); break;
-        case (V4L2_PIX_FMT_RGB565X): ARLOGi("  Pix Fmt: RGB565X\n"); break;
-        case (V4L2_PIX_FMT_BGR24): ARLOGi("  Pix Fmt: BGR24\n"); break;
-        case (V4L2_PIX_FMT_RGB24): ARLOGi("  Pix Fmt: RGB24\n"); break;
-        case (V4L2_PIX_FMT_BGR32): ARLOGi("  Pix Fmt: BGR32\n"); break;
-        case (V4L2_PIX_FMT_RGB32): ARLOGi("  Pix Fmt: RGB32\n"); break;
+static void printPalette(int const pixelFormat) {
+    char *name;
+
+    switch (pixelFormat) {
+        // YUV formats
+        case V4L2_PIX_FMT_GREY: name = "Grey"; break;
+        case V4L2_PIX_FMT_YUYV: name = "YUYV"; break;
+        case V4L2_PIX_FMT_UYVY: name = "UYVY"; break;
+        case V4L2_PIX_FMT_Y41P: name = "Y41P"; break;
+        case V4L2_PIX_FMT_YVU420: name = "YVU420"; break;
+        case V4L2_PIX_FMT_YVU410: name = "YVU410"; break;
+        case V4L2_PIX_FMT_YUV422P: name = "YUV422P"; break;
+        case V4L2_PIX_FMT_YUV411P: name = "YUV411P"; break;
+        case V4L2_PIX_FMT_NV12: name = "NV12"; break;
+        case V4L2_PIX_FMT_NV21: name = "NV21"; break;
+
+        // RGB formats
+        case V4L2_PIX_FMT_RGB332: name = "RGB332"; break;
+        case V4L2_PIX_FMT_RGB555: name = "RGB555"; break;
+        case V4L2_PIX_FMT_RGB565: name = "RGB565"; break;
+        case V4L2_PIX_FMT_RGB555X: name = "RGB555X"; break;
+        case V4L2_PIX_FMT_RGB565X: name = "RGB565X"; break;
+        case V4L2_PIX_FMT_BGR24: name = "BGR24"; break;
+        case V4L2_PIX_FMT_RGB24: name = "RGB24"; break;
+        case V4L2_PIX_FMT_BGR32: name = "BGR32"; break;
+        case V4L2_PIX_FMT_RGB32: name = "RGB32"; break;
+
+        // Other formats
+        case V4L2_PIX_FMT_MJPEG: name = "MJPEG"; break;
+        default: name = "Unknown"; break;
     };
-    
+
+    ARLOGi("  Pixel Format: %s\n", name);
 }
 
 static int getControl(int fd, int type, int *value) {
     struct v4l2_queryctrl queryctrl;
     struct v4l2_control control;
-    
+
     memset (&queryctrl, 0, sizeof (queryctrl));
     // TODO: Manke sure this is a correct value
     queryctrl.id = type;
-    
+
     if (-1 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
         if (errno != EINVAL) {
             ARLOGe("Error calling VIDIOC_QUERYCTRL\n");
@@ -119,7 +128,7 @@ static int getControl(int fd, int type, int *value) {
     } else {
         memset (&control, 0, sizeof (control));
         control.id = type;
-        
+
         if (-1 == xioctl (fd, VIDIOC_G_CTRL, &control)) {
             ARLOGe("Error getting control %s value\n", queryctrl.name);
             return 1;
@@ -132,11 +141,11 @@ static int getControl(int fd, int type, int *value) {
 static int setControl(int fd, int type, int value) {
     struct v4l2_queryctrl queryctrl;
     struct v4l2_control control;
-    
+
     memset (&queryctrl, 0, sizeof (queryctrl));
     // TODO: Manke sure this is a correct value
     queryctrl.id = type;
-    
+
     if (-1 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
         if (errno != EINVAL) {
             ARLOGe("Error calling VIDIOC_QUERYCTRL\n");
@@ -154,7 +163,7 @@ static int setControl(int fd, int type, int value) {
         // TODO check min/max range
         // If value is -1, then we use the default value
         control.value = (value == -1) ? (queryctrl.default_value) : (value);
-        
+
         if (-1 == xioctl (fd, VIDIOC_S_CTRL, &control)) {
             ARLOGe("Error setting control %s to %d\n", queryctrl.name, value);
             return 1;
@@ -188,7 +197,7 @@ static int yuyvToBgr32(int width, int height, const void *src, void *dst)
     const int K2 = (int)(0.714f * (1 << 16));
     const int K3 = (int)(0.334f * (1 << 16));
     const int K4 = (int)(1.772f * (1 << 16));
-    
+
     typedef unsigned char T;
     T* out_ptr = &rgb_image[0];
     const T a = 0xff;
@@ -201,37 +210,37 @@ static int yuyvToBgr32(int width, int height, const void *src, void *dst)
             T U  = src[x + 1];
             T Y2 = src[x + 2];
             T V  = src[x + 3];
-            
+
             char uf = U - 128;
             char vf = V - 128;
-            
+
             int R = Y1 + (K1*vf >> 16);
             int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
             int B = Y1 + (K4*uf >> 16);
-            
+
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
             saturate(&B, 0, 255);
-            
+
             *out_ptr++ = (T)(B);
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
             *out_ptr++ = a;
-            
+
             R = Y2 + (K1*vf >> 16);
             G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
             B = Y2 + (K4*uf >> 16);
-            
+
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
             saturate(&B, 0, 255);
-            
+
             *out_ptr++ = (T)(B);
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
             *out_ptr++ = a;
         }
-        
+
     }
 
     return 0;
@@ -246,7 +255,7 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
     const int K2 = (int)(0.714f * (1 << 16));
     const int K3 = (int)(0.334f * (1 << 16));
     const int K4 = (int)(1.772f * (1 << 16));
-    
+
     typedef unsigned char T;
     T* out_ptr = &rgb_image[0];
     const int pitch = width * 2; // 2 bytes per one YU-YV pixel
@@ -258,37 +267,42 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
             T U  = src[x + 1];
             T Y2 = src[x + 2];
             T V  = src[x + 3];
-            
+
             char uf = U - 128;
             char vf = V - 128;
-            
+
             int R = Y1 + (K1*vf >> 16);
             int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
             int B = Y1 + (K4*uf >> 16);
-            
+
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
             saturate(&B, 0, 255);
-            
+
             *out_ptr++ = (T)(B);
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
-            
+
             R = Y2 + (K1*vf >> 16);
             G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
             B = Y2 + (K4*uf >> 16);
-            
+
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
             saturate(&B, 0, 255);
-            
+
             *out_ptr++ = (T)(B);
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
         }
-        
+
     }
 
+    return 0;
+}
+
+static int mjpegToBgr24(int width, int height, const void *src, void *dst)
+{
     return 0;
 }
 
@@ -308,7 +322,7 @@ int ar2VideoDispOptionV4L2( void )
     ARLOG(" -height=N\n");
     ARLOG("    specifies expected height of image.\n");
     ARLOG(" -palette=[GREY|HI240|RGB565|RGB555|BGR24|BGR32|YUYV|UYVY|\n");
-    ARLOG("    Y41P|YUV422P|YUV411P|YVU420|YVU410]\n");
+    ARLOG("    Y41P|YUV422P|YUV411P|YVU420|YVU410|MJPEG]\n");
     ARLOG("    specifies the camera palette (WARNING: not all options are supported by\n");
     ARLOG("    every camera).\n");
     ARLOG("IMAGE CONTROLS (WARNING: not all options are not supported by every camera):\n");
@@ -324,24 +338,24 @@ int ar2VideoDispOptionV4L2( void )
     ARLOG(" -mode=[PAL|NTSC|SECAM]\n");
     ARLOG("    specifies TV signal mode (for tv/capture card).\n");
     ARLOG("\n");
-    
+
     return 0;
 }
 
 AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
 {
-    
+
     // Warning, this function leaks badly when an error occurs.
     AR2VideoParamV4L2T            *vid;
     struct v4l2_capability   vd;
     struct v4l2_format fmt;
     struct v4l2_input  ipt;
     struct v4l2_requestbuffers req;
-    
+
     const char *a;
     char line[256];
     int value;
-    
+
     arMalloc( vid, AR2VideoParamV4L2T, 1 );
     strcpy( vid->dev, AR_VIDEO_V4L2_DEFAULT_DEVICE );
     vid->width      = AR_VIDEO_V4L2_DEFAULT_WIDTH;
@@ -357,10 +371,9 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     vid->gamma  = -1;
     vid->exposure  = -1;
     vid->gain  = 1;
-    //vid->debug      = 0;
-    vid->debug      = 1;
+    vid->debug      = 0;
     vid->videoBuffer=NULL;
-    
+
     a = config;
     if( a != NULL) {
         for(;;) {
@@ -424,6 +437,8 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
                     vid->palette = V4L2_PIX_FMT_YVU420;
                 } else if( strncmp( &a[9], "YVU410", 3) == 0 ) {
                     vid->palette = V4L2_PIX_FMT_YVU410;
+                } else if (strncmp(&a[9], "MJPEG", 4) == 0) {
+                    vid->palette = V4L2_PIX_FMT_MJPEG;
                 }
             }
             else if( strncmp( a, "-contrast=", 10 ) == 0 ) {
@@ -496,39 +511,38 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
                 free( vid );
                 return 0;
             }
-            
+
             while( *a != ' ' && *a != '\t' && *a != '\0') a++;
         }
     }
-    
+
     vid->fd = open(vid->dev, O_RDWR);// O_RDONLY ?
     if(vid->fd < 0){
         ARLOGe("video device (%s) open failed\n",vid->dev);
         free( vid );
         return 0;
     }
-    
+
     if(xioctl(vid->fd,VIDIOC_QUERYCAP,&vd) < 0){
         ARLOGe("xioctl failed\n");
         free( vid );
         return 0;
     }
-    
+
     if (!(vd.capabilities & V4L2_CAP_STREAMING)) {
         ARLOGe("Device does not support streaming i/o\n");
     }
-    
+
     if (vid->debug) {
-        ARLOGe("=== debug info ===\n");
-        ARLOGe("  vd.driver        =   %s\n",vd.driver);
-        ARLOGe("  vd.card          =   %s\n",vd.card);
-        ARLOGe("  vd.bus_info      =   %s\n",vd.bus_info);
-        ARLOGe("  vd.version       =   %d\n",vd.version);
-        ARLOGe("  vd.capabilities  =   %d\n",vd.capabilities);
+        ARLOGi("=== debug info ===\n");
+        ARLOGi("  vd.driver        =   %s\n",vd.driver);
+        ARLOGi("  vd.card          =   %s\n",vd.card);
+        ARLOGi("  vd.bus_info      =   %s\n",vd.bus_info);
+        ARLOGi("  vd.version       =   %d\n",vd.version);
     }
-    
+
     memset(&fmt, 0, sizeof(fmt));
-    
+
     fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 #if 1
     fmt.fmt.pix.width       = vid->width;
@@ -541,18 +555,24 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
 #endif
-    
-    if (xioctl (vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
+
+    if (xioctl(vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
         close(vid->fd);
-        free( vid );
+        free(vid);
         ARLOGe("ar2VideoOpen: Error setting video format (%d)\n", errno);
-        return 0;
+        return NULL;
     }
-    
+
     // Get actual camera settings
     vid->palette = fmt.fmt.pix.pixelformat;
     vid->width = fmt.fmt.pix.width;
     vid->height = fmt.fmt.pix.height;
+
+    if (vid->debug) {
+        ARLOGi("  Width: %d\n", fmt.fmt.pix.width);
+        ARLOGi("  Height: %d\n", fmt.fmt.pix.height);
+        printPalette(fmt.fmt.pix.pixelformat);
+    }
 
     switch (vid->palette) {
 #if defined(AR_PIXEL_FORMAT_RGBA)
@@ -570,6 +590,13 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
 #endif
             break;
 
+#if defined(AR_PIXEL_FORMAT_RGBA)
+#else
+        case V4L2_PIX_FMT_MJPEG:
+            vid->toArPixelFormat = mjpegToBgr24;
+            break;
+#endif
+
         default:
             close(vid->fd);
             free(vid);
@@ -577,25 +604,18 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
                    "internal pixel format.\n");
             return NULL;
     }
-    
-    if (vid->debug) {
-        ARLOGe("  Width: %d\n", fmt.fmt.pix.width);
-        ARLOGe("  Height: %d\n", fmt.fmt.pix.height);
-        printPalette(fmt.fmt.pix.pixelformat);
-    }
-    
+
     memset(&ipt, 0, sizeof(ipt));
-    
     ipt.index = vid->channel;
     ipt.std = vid->mode;
-    
+
     if (xioctl(vid->fd,VIDIOC_ENUMINPUT,&ipt) < 0) {
         ARLOGe("arVideoOpen: Error querying input device type\n");
         close(vid->fd);
         free( vid );
         return 0;
     }
-    
+
     if (vid->debug) {
         if (ipt.type == V4L2_INPUT_TYPE_TUNER) {
             ARLOGe("  Type: Tuner\n");
@@ -604,7 +624,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
             ARLOGe("  Type: Camera\n");
         }
     }
-    
+
     // Set channel
     if (xioctl(vid->fd, VIDIOC_S_INPUT, &ipt)) {
         ARLOGe("arVideoOpen: Error setting video input\n");
@@ -612,8 +632,8 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
         free( vid );
         return 0;
     }
-    
-    
+
+
     // Attempt to set some camera controls
     setControl(vid->fd, V4L2_CID_BRIGHTNESS, vid->brightness);
     setControl(vid->fd, V4L2_CID_CONTRAST, vid->contrast);
@@ -622,7 +642,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     setControl(vid->fd, V4L2_CID_GAMMA, vid->gamma);
     setControl(vid->fd, V4L2_CID_EXPOSURE, vid->exposure);
     setControl(vid->fd, V4L2_CID_GAIN, vid->gain);
-    
+
     // Print out current control values
     if (vid->debug ) {
         if (!getControl(vid->fd, V4L2_CID_BRIGHTNESS, &value)) {
@@ -647,7 +667,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
             ARLOGe("Gain: %d\n", value);
         }
     }
-    
+
     //    if (vid->palette==V4L2_PIX_FMT_YUYV)
 #if defined(AR_PIX_FORMAT_BGRA)
     arMalloc( vid->videoBuffer, ARUint8, vid->width*vid->height*4 );
@@ -659,7 +679,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     req.count = 2;
     req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_MMAP;
-    
+
     if (xioctl(vid->fd, VIDIOC_REQBUFS, &req)) {
         ARLOGe("Error calling VIDIOC_REQBUFS\n");
         close(vid->fd);
@@ -667,19 +687,19 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
         free( vid );
         return 0;
     }
-    
+
     if (req.count < 2) {
         ARLOGe("this device can not be supported by libARvideo.\n");
         ARLOGe("(req.count < 2)\n");
         close(vid->fd);
         if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
         free( vid );
-        
+
         return 0;
     }
-    
+
     vid->buffers = (struct buffer_ar_v4l2 *)calloc(req.count , sizeof(*vid->buffers));
-    
+
     if (vid->buffers == NULL ) {
         ARLOGe("ar2VideoOpen: Error allocating buffer memory\n");
         close(vid->fd);
@@ -687,14 +707,14 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
         free( vid );
         return 0;
     }
-    
+
     for (vid->n_buffers = 0; vid->n_buffers < req.count; ++vid->n_buffers) {
         struct v4l2_buffer buf;
         memset(&buf, 0, sizeof(buf));
         buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory      = V4L2_MEMORY_MMAP;
         buf.index       = vid->n_buffers;
-        
+
         if (xioctl (vid->fd, VIDIOC_QUERYBUF, &buf)) {
             ARLOGe("error VIDIOC_QUERYBUF\n");
             close(vid->fd);
@@ -702,7 +722,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
             free( vid );
             return 0;
         }
-        
+
         vid->buffers[vid->n_buffers].length = buf.length;
         vid->buffers[vid->n_buffers].start =
         mmap (NULL /* start anywhere */,
@@ -710,7 +730,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
               PROT_READ | PROT_WRITE /* required */,
               MAP_SHARED /* recommended */,
               vid->fd, buf.m.offset);
-        
+
         if (MAP_FAILED == vid->buffers[vid->n_buffers].start) {
             ARLOGe("Error mmap\n");
             close(vid->fd);
@@ -719,9 +739,9 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
             return 0;
         }
     }
-    
+
     vid->video_cont_num = -1;
-    
+
     return vid;
 }
 
@@ -733,34 +753,34 @@ int ar2VideoCloseV4L2( AR2VideoParamV4L2T *vid )
     close(vid->fd);
     free(vid->videoBuffer);
     free(vid);
-    
+
     return 0;
 }
 
 int ar2VideoGetIdV4L2( AR2VideoParamV4L2T *vid, ARUint32 *id0, ARUint32 *id1 )
 {
     if (!vid) return -1;
-    
+
     if (id0) *id0 = 0;
     if (id1) *id1 = 0;
-    
+
     return -1;
 }
 
 int ar2VideoGetSizeV4L2(AR2VideoParamV4L2T *vid, int *x,int *y)
 {
     if (!vid) return -1;
-    
+
     if (x) *x = vid->width;
     if (y) *y = vid->height;
-    
+
     return 0;
 }
 
 AR_PIXEL_FORMAT ar2VideoGetPixelFormatV4L2( AR2VideoParamV4L2T *vid )
 {
     if (!vid) return AR_PIXEL_FORMAT_INVALID;
-    
+
     return vid->format;
 }
 
@@ -769,14 +789,14 @@ int ar2VideoCapStartV4L2( AR2VideoParamV4L2T *vid )
     enum v4l2_buf_type type;
     struct v4l2_buffer buf;
     int i;
-    
+
     if (vid->video_cont_num >= 0){
         ARLOGe("arVideoCapStart has already been called.\n");
         return -1;
     }
-    
+
     vid->video_cont_num = 0;
-    
+
     for (i = 0; i < vid->n_buffers; ++i) {
         memset(&buf, 0, sizeof(buf));
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -787,13 +807,13 @@ int ar2VideoCapStartV4L2( AR2VideoParamV4L2T *vid )
             return -1;
         }
     }
-    
+
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (xioctl(vid->fd, VIDIOC_STREAMON, &type)) {
         ARLOGe("ar2VideoCapStart: Error calling VIDIOC_STREAMON\n");
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -805,17 +825,17 @@ int ar2VideoCapStopV4L2( AR2VideoParamV4L2T *vid )
         ARLOGe("arVideoCapStart has never been called.\n");
         return -1;
     }
-    
+
     enum v4l2_buf_type type;
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    
+
     if (xioctl(vid->fd, VIDIOC_STREAMOFF, &type)) {
         ARLOGe("Error calling VIDIOC_STREAMOFF\n");
         return -1;
     }
-    
+
     vid->video_cont_num = -1;
-    
+
     return 0;
 }
 
@@ -823,32 +843,64 @@ int ar2VideoCapStopV4L2( AR2VideoParamV4L2T *vid )
 AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
 {
     if (!vid) return NULL;
-   
+
     if (vid->video_cont_num < 0){
         ARLOGe("arVideoCapStart has never been called.\n");
         return NULL;
     }
-    
-    ARUint8 *buffer;
+
     AR2VideoBufferT *out = &(vid->buffer.out);
     memset(out, 0, sizeof(*out));
-    
+
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
-    
+
     if (xioctl(vid->fd, VIDIOC_DQBUF, &buf) < 0) {
         ARLOGe("Error calling VIDIOC_DQBUF: %d\n", errno);
         return out;
     }
-    
-    buffer = (ARUint8*)vid->buffers[buf.index].start;
+
     vid->video_cont_num = buf.index;
-    
-    if (vid->toArPixelFormat(vid->width, vid->height, buffer,
-                             vid->videoBuffer) != 0) {
-        return NULL;
+
+    ARUint8 *buffer = (ARUint8*)vid->buffers[buf.index].start;
+
+
+    if (vid->palette == V4L2_PIX_FMT_MJPEG) {
+        struct jpeg_decompress_struct cinfo;
+        struct jpeg_error_mgr jerr;
+
+        cinfo.err = jpeg_std_error(&jerr);
+        jpeg_create_decompress(&cinfo);
+        jpeg_mem_src(&cinfo, buffer, buf.length);
+
+        int rc = jpeg_read_header(&cinfo, TRUE);
+        if (rc != 1) {
+            ARLOGe("Bad JPEG\n");
+            exit(-1);
+        }
+
+        cinfo.out_color_space = JCS_EXT_BGR;
+        jpeg_start_decompress(&cinfo);
+
+        int width = cinfo.output_width;
+        int height = cinfo.output_height;
+        int pixelSize = cinfo.output_components;
+
+        while (cinfo.output_scanline < cinfo.output_height) {
+            unsigned char *buffer_array[1];
+            buffer_array[0] = vid->videoBuffer + cinfo.output_scanline * \
+                              (width * pixelSize);
+            jpeg_read_scanlines(&cinfo, buffer_array, 1);
+        }
+
+        jpeg_finish_decompress(&cinfo);
+        jpeg_destroy_decompress(&cinfo);
+    } else if (vid->toArPixelFormat(vid->width, vid->height, buffer,
+                                   vid->videoBuffer) != 0) {
+        ARLOGe("Could not convert image to ARToolkit pixel format.");
+        return out;
     }
 
     out->buff = vid->videoBuffer;
@@ -856,13 +908,13 @@ AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
     out->time_usec = buf.timestamp.tv_usec;
     out->fillFlag = 1;
     out->buffLuma = NULL;
-    
+
     struct v4l2_buffer buf_next;
     memset(&buf_next, 0, sizeof(buf_next));
     buf_next.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf_next.memory = V4L2_MEMORY_MMAP;
     buf_next.index = vid->video_cont_num;
-    
+
     if (xioctl(vid->fd, VIDIOC_QBUF, &buf_next)) {
         ARLOGe("ar2VideoCapNext: Error calling VIDIOC_QBUF: %d\n", errno);
     }
