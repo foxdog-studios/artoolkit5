@@ -1,0 +1,16 @@
+#!/usr/bin/env zsh
+
+function main()
+{
+    local root=${${(%):-%x}:A:h}
+    local build=$root/build
+
+    rm -fr $build
+    mkdir -p $build
+    meson $build
+    cd $build
+    mesonconf
+    ninja
+}
+
+main $@

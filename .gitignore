@@ -231,3 +231,4 @@ examples/uiControlsWinRT/uiControlsWinRT.Windows/obj/*
 examples/uiControlsWinRT/uiControlsWinRT.WindowsPhone/bin/*
 examples/uiControlsWinRT/uiControlsWinRT.WindowsPhone/obj/*
 
+/build/

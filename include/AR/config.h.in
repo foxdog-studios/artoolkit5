@@ -250,22 +250,23 @@ enum {
 #  endif
 
 // Input modules. This is edited by the configure script.
-#undef  AR_INPUT_V4L
-#undef  AR_INPUT_V4L2
-#undef  AR_INPUT_DV
-#undef  AR_INPUT_1394CAM
-#undef  AR_INPUT_GSTREAMER
-#undef  AR_INPUT_IMAGE
-#define AR_INPUT_DUMMY
+#mesondefine  AR_INPUT_V4L
+#mesondefine  AR_INPUT_V4L2
+#mesondefine  AR_INPUT_DV
+#mesondefine  AR_INPUT_1394CAM
+#mesondefine  AR_INPUT_GSTREAMER
+#mesondefine  AR_INPUT_IMAGE
+#mesondefine  AR_INPUT_DUMMY
+
 
 // Default input module. This is edited by the configure script.
-#undef  AR_DEFAULT_INPUT_V4L
-#undef  AR_DEFAULT_INPUT_V4L2
-#undef  AR_DEFAULT_INPUT_DV
-#undef  AR_DEFAULT_INPUT_1394CAM
-#undef  AR_DEFAULT_INPUT_GSTREAMER
-#undef  AR_DEFAULT_INPUT_IMAGE
-#undef  AR_DEFAULT_INPUT_DUMMY
+#mesondefine  AR_DEFAULT_INPUT_V4L
+#mesondefine  AR_DEFAULT_INPUT_V4L2
+#mesondefine  AR_DEFAULT_INPUT_DV
+#mesondefine  AR_DEFAULT_INPUT_1394CAM
+#mesondefine  AR_DEFAULT_INPUT_GSTREAMER
+#mesondefine  AR_DEFAULT_INPUT_IMAGE
+#mesondefine  AR_DEFAULT_INPUT_DUMMY
 
 // Other Linux-only configuration.
 #define HAVE_LIBJPEG 1
