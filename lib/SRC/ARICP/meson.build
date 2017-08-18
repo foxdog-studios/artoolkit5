@@ -1,4 +1,4 @@
-aricp_files = files(
+ar_icp_files = files(
     'icpCalibStereo.c',
     'icpCore.c',
     'icpHandle.c',
@@ -10,8 +10,8 @@ aricp_files = files(
     'icpUtil.c',
 )
 
-aricp_lib = static_library(
-    'ARICP', aricp_files,
+ar_icp_lib = static_library(
+    'ARICP',
+    ar_icp_files,
     include_directories : ar_includes,
-    pic : true,
 )

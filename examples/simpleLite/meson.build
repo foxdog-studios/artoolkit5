@@ -1,13 +1,13 @@
-simple_test_files = files(
-    'simpleTest.c',
+simple_lite_files = files(
+    'simpleLite.c',
 )
 
-simple_test_exe = executable(
-    'simpleTest',
-    simple_test_files,
+simple_lite_exe = executable(
+    'simpleLite',
+    simple_lite_files,
 
-    link_with : [
-        ar_gsub_lib,
+    link_with: [
+        ar_gsub_lite_lib,
         ar_icp_lib,
         ar_lib,
         ar_video_lib,
@@ -20,5 +20,6 @@ simple_test_exe = executable(
         glut_dep,
         libjpeg_dep,
         math_dep,
-    ],
+        dependency('glew'),
+    ]
 )

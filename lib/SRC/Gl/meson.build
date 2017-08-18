@@ -1,4 +1,4 @@
-argsub_files = files(
+ar_gsub_files = files(
     'argDraw.c',
     'argDrawImage.c',
     'argBase.c',
@@ -7,18 +7,18 @@ argsub_files = files(
     'argWindow.c',
 )
 
-argsub_lib = static_library(
-    'ARgsub', argsub_files,
+ar_gsub_lib = static_library(
+    'ARgsub', ar_gsub_files,
     include_directories : ar_includes,
 )
 
-argsub_lite_files = files(
+ar_gsub_lite_files = files(
     'gsub_lite.c',
     'gsub_mtx.c',
 )
 
-argsub_lite_lib = static_library(
-    'ARgsub_lite', argsub_lite_files,
+ar_gsub_lite_lib = static_library(
+    'ARgsub_lite', ar_gsub_lite_files,
     include_directories: ar_includes,
 )
 
@@ -27,9 +27,17 @@ gsub_test_files = files(
 )
 
 gsub_test_exe = executable(
-    'gsubTest', gsub_test_files,
-    link_with : [ar_lib, aricp_lib, argsub_lib],
+    'gsubTest',
+    gsub_test_files,
+
+    link_with : [
+        ar_lib,
+        ar_icp_lib,
+        ar_gsub_lib,
+    ],
+
     include_directories : ar_includes,
+
     dependencies: [
         gl_dep,
         glut_dep,
