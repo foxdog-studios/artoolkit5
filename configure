@@ -8,6 +8,7 @@ function main()
     rm -fr $build
     mkdir -p $build
 
+    export CFLAGS='-march=native -mtune=native'
     meson --warnlevel 1 $build
 
     cd $build
