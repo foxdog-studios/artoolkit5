@@ -523,13 +523,21 @@ static AR2ImageSetT *ar2ReadImageSetOld( FILE *fp )
             }
         }
 #else
-        if( fread(imageSet->scale[i]->imgBW, sizeof(ARUint8), imageSet->scale[i]->xsize * imageSet->scale[i]->ysize, fp)
-           != imageSet->scale[i]->xsize * imageSet->scale[i]->ysize ) {
-            for( k = 0; k <= i; k++ ) {
-                free(imageSet->scale[k]->imgBW);
+        {
+            size_t nmemb = imageSet->scale[i]->xsize * imageSet->scale[i]->ysize;
+
+            if (fread(imageSet->scale[i]->imgBW, sizeof(ARUint8), nmemb, fp)
+                    != nmemb) {
+                for (k = 0; k <= i; ++k) {
+                    free(imageSet->scale[k]->imgBW);
+                }
+
+                for(k = 0; k < imageSet->num; ++k) {
+                    free(imageSet->scale[k]);
+                }
+
+                goto bail1;
             }
-            for( k = 0; k < imageSet->num; k++ ) free(imageSet->scale[k]);
-            goto bail1;
         }
 #endif
     }

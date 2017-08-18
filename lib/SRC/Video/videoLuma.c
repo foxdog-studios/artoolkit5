@@ -153,10 +153,8 @@ int arVideoLumaFinal(ARVideoLumaInfo **vli_p)
     return (0);
 }
 
-ARUint8 *__restrict arVideoLuma(ARVideoLumaInfo *vli, const ARUint8 *__restrict dataPtr)
+ARUint8 *arVideoLuma(ARVideoLumaInfo *vli, const ARUint8 *__restrict dataPtr)
 {
-    unsigned int p, q;
-    
     AR_PIXEL_FORMAT pixFormat = vli->pixFormat;
 #if defined(HAVE_ARM_NEON) || defined(HAVE_ARM64_NEON)
     if (vli->fastPath) {
@@ -188,59 +186,60 @@ ARUint8 *__restrict arVideoLuma(ARVideoLumaInfo *vli, const ARUint8 *__restrict 
     if (pixFormat == AR_PIXEL_FORMAT_MONO || pixFormat == AR_PIXEL_FORMAT_420v || pixFormat == AR_PIXEL_FORMAT_420f || pixFormat == AR_PIXEL_FORMAT_NV21) {
         memcpy(vli->buff, dataPtr, vli->buffSize);
     } else {
-        q = 0;
+        size_t const buffer_size = vli->buffSize;
+        size_t q = 0;
         if (pixFormat == AR_PIXEL_FORMAT_RGBA) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*dataPtr[q + 0] + G8_CCIR601*dataPtr[q + 1] + B8_CCIR601*dataPtr[q + 2]) >> 8;
                 q += 4;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_BGRA) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (B8_CCIR601*dataPtr[q + 0] + G8_CCIR601*dataPtr[q + 1] + R8_CCIR601*dataPtr[q + 2]) >> 8;
                 q += 4;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_ARGB) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*dataPtr[q + 1] + G8_CCIR601*dataPtr[q + 2] + B8_CCIR601*dataPtr[q + 3]) >> 8;
                 q += 4;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_ABGR) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (B8_CCIR601*dataPtr[q + 1] + G8_CCIR601*dataPtr[q + 2] + R8_CCIR601*dataPtr[q + 3]) >> 8;
                 q += 4;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_RGB) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*dataPtr[q + 0] + G8_CCIR601*dataPtr[q + 1] + B8_CCIR601*dataPtr[q + 2]) >> 8;
                 q += 3;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_BGR) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (B8_CCIR601*dataPtr[q + 0] + G8_CCIR601*dataPtr[q + 1] + R8_CCIR601*dataPtr[q + 2]) >> 8;
                 q += 3;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_yuvs) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = dataPtr[q + 0];
                 q += 2;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_2vuy) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = dataPtr[q + 1];
                 q += 2;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_RGB_565) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*((dataPtr[q + 0] & 0xf8) + 4) + G8_CCIR601*(((dataPtr[q + 0] & 0x07) << 5) + ((dataPtr[q + 1] & 0xe0) >> 3) + 2) + B8_CCIR601*(((dataPtr[q + 1] & 0x1f) << 3) + 4)) >> 8;
                 q += 2;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_RGBA_5551) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*((dataPtr[q + 0] & 0xf8) + 4) + G8_CCIR601*(((dataPtr[q + 0] & 0x07) << 5) + ((dataPtr[q + 1] & 0xc0) >> 3) + 2) + B8_CCIR601*(((dataPtr[q + 1] & 0x3e) << 2) + 4)) >> 8;
                 q += 2;
             }
         } else if (pixFormat == AR_PIXEL_FORMAT_RGBA_4444) {
-            for (p = 0; p < vli->buffSize; p++) {
+            for (size_t p = 0; p < buffer_size; p++) {
                 vli->buff[p] = (R8_CCIR601*((dataPtr[q + 0] & 0xf0) + 8) + G8_CCIR601*(((dataPtr[q + 0] & 0x0f) << 4) + 8) + B8_CCIR601*((dataPtr[q + 1] & 0xf0) + 8)) >> 8;
                 q += 2;
             }

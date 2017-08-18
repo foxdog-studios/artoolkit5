@@ -97,11 +97,10 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
         }
         while (cinfo.next_scanline < cinfo.image_height) {
             unsigned char *pixels_row;
-            int i;
             switch (pixFormat) {
                 case AR_PIXEL_FORMAT_BGR:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 3];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] = pixels_row[i*3 + 2];  
                         row[i*3 + 1] = pixels_row[i*3 + 1];  
                         row[i*3 + 2] = pixels_row[i*3 + 0];  
@@ -109,7 +108,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_RGBA:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 4];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] = pixels_row[i*4 + 0];  
                         row[i*3 + 1] = pixels_row[i*4 + 1];  
                         row[i*3 + 2] = pixels_row[i*4 + 2];  
@@ -117,7 +116,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_BGRA:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 4];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] = pixels_row[i*4 + 2];  
                         row[i*3 + 1] = pixels_row[i*4 + 1];  
                         row[i*3 + 2] = pixels_row[i*4 + 0];  
@@ -125,7 +124,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_ARGB:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 4];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] = pixels_row[i*4 + 1];  
                         row[i*3 + 1] = pixels_row[i*4 + 2];  
                         row[i*3 + 2] = pixels_row[i*4 + 3];  
@@ -133,7 +132,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_ABGR:
                     pixels_row = &pixels[cinfo.next_scanline * cinfo.image_width * 4];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] = pixels_row[i*4 + 3];  
                         row[i*3 + 1] = pixels_row[i*4 + 2];  
                         row[i*3 + 2] = pixels_row[i*4 + 1];  
@@ -141,7 +140,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_2vuy:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 2];
-                    for (i = 0; i < cinfo.image_width; i += 2) {
+                    for (size_t i = 0; i < cinfo.image_width; i += 2) {
                         unsigned char Cb =      pixels_row[i*2 + 0];
                         unsigned char Yprime0 = pixels_row[i*2 + 1];
                         unsigned char Cr =      pixels_row[i*2 + 2];
@@ -157,7 +156,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_yuvs:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 2];
-                    for (i = 0; i < cinfo.image_width; i += 2) {
+                    for (size_t i = 0; i < cinfo.image_width; i += 2) {
                         unsigned char Yprime0 = pixels_row[i*2 + 0];
                         unsigned char Cb =      pixels_row[i*2 + 1];
                         unsigned char Yprime1 = pixels_row[i*2 + 2];
@@ -173,7 +172,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_RGB_565:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 2];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] =  ((pixels_row[i*2 + 0] & 0xf8) + 0x04);  
                         row[i*3 + 1] = (((pixels_row[i*2 + 0] & 0x07) << 5) + ((pixels_row[i*2 + 1] & 0xe0) >> 3) + 0x02);  
                         row[i*3 + 2] =                                       (((pixels_row[i*2 + 1] & 0x1f) << 3) + 0x04);
@@ -181,7 +180,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_RGBA_5551:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 2];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] =  ((pixels_row[i*2 + 0] & 0xf8) + 0x04);  
                         row[i*3 + 1] = (((pixels_row[i*2 + 0] & 0x07) << 5) + ((pixels_row[i*2 + 1] & 0xc0) >> 3) + 0x04);  
                         row[i*3 + 2] =                                       (((pixels_row[i*2 + 1] & 0x3e) << 2) + 0x04);  
@@ -189,7 +188,7 @@ int arVideoSaveImageJPEG(int w, int h, AR_PIXEL_FORMAT pixFormat, ARUint8 *pixel
                     break;
                 case AR_PIXEL_FORMAT_RGBA_4444:
                     pixels_row = &pixels[(flipV ? (h - 1 - cinfo.next_scanline) : cinfo.next_scanline) * cinfo.image_width * 2];
-                    for (i = 0; i < cinfo.image_width; i++) {
+                    for (size_t i = 0; i < cinfo.image_width; i++) {
                         row[i*3 + 0] =  ((pixels_row[i*2 + 0] & 0xf0) + 0x08);  
                         row[i*3 + 1] = (((pixels_row[i*2 + 0] & 0x0f) << 4) + 0x08);  
                         row[i*3 + 2] =  ((pixels_row[i*2 + 1] & 0xf0) + 0x08);  

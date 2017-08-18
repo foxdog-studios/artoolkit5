@@ -46,7 +46,7 @@ struct _ASPECT_RATIOS_ENTRY {
     char *name;
 };
 
-const static struct _ASPECT_RATIOS_ENTRY aspectRatios[] =
+static struct _ASPECT_RATIOS_ENTRY const aspectRatios[] =
 {
     {1,  1,  AR_VIDEO_ASPECT_RATIO_1_1, "1:1"},    // 1.0:
     {11, 9,  AR_VIDEO_ASPECT_RATIO_11_9, "11:9"},  // 1.222: 176x144 (QCIF), 352x288 (CIF)
@@ -72,18 +72,20 @@ const static struct _ASPECT_RATIOS_ENTRY aspectRatios[] =
     {37,  30,  AR_VIDEO_ASPECT_RATIO_11_9, "11:9"}, // ~1.233: 592x480
     {192, 145, AR_VIDEO_ASPECT_RATIO_4_3, "4:3"}    // ~1.324: 1152x870
 };
-#define _ASPECT_RATIOS_COUNT (sizeof(aspectRatios)/sizeof(aspectRatios[0]))
+
+static size_t const _ASPECT_RATIOS_COUNT =
+    sizeof(aspectRatios) / sizeof(aspectRatios[0]);
 
 AR_VIDEO_ASPECT_RATIO arVideoUtilFindAspectRatio(int w, int h)
 {
-    int i;
-    
     // Reduce.
-    int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
-#define PRIMES_COUNT (sizeof(primes)/sizeof(primes[0]))
+    int const primes[] = {2,  3,  5,  7,  11, 13, 17, 19, 23, 29, 31, 37, 41,
+                          43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+
+    size_t const primes_count = sizeof(primes) / sizeof(primes[0]);
 
     int w_lcd = w, h_lcd = h;
-    for (i = 0; i < PRIMES_COUNT; i++) {
+    for (size_t i = 0; i < primes_count; i++) {
         int prime = primes[i];
         while (w_lcd >= prime && h_lcd >= prime && w_lcd % prime == 0 && h_lcd % prime == 0) {
             w_lcd /= prime; h_lcd /= prime;
@@ -91,15 +93,17 @@ AR_VIDEO_ASPECT_RATIO arVideoUtilFindAspectRatio(int w, int h)
     }
     
     // Find.
-    for (i = 0; i < _ASPECT_RATIOS_COUNT; i++) {
-        if (w_lcd == aspectRatios[i].width && h_lcd == aspectRatios[i].height) return aspectRatios[i].aspectRatio;
+    for (size_t i = 0; i < _ASPECT_RATIOS_COUNT; i++) {
+        if (w_lcd == aspectRatios[i].width && h_lcd == aspectRatios[i].height) {
+            return aspectRatios[i].aspectRatio;
+        }
     }
+
     return (AR_VIDEO_ASPECT_RATIO_UNIQUE);
 }
 
 char *arVideoUtilFindAspectRatioName(int w, int h)
 {
-    int i;
     const char format[] = "%d:%d";
 #ifdef _WIN32
     int len;
@@ -107,11 +111,13 @@ char *arVideoUtilFindAspectRatioName(int w, int h)
     char *ret;
     
     // Reduce.
-    int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
-#define PRIMES_COUNT (sizeof(primes)/sizeof(primes[0]))
+    int const primes[] = {2,  3,  5,  7,  11, 13, 17, 19, 23, 29, 31, 37, 41,
+                          43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+
+    size_t const primes_count = sizeof(primes) / sizeof(primes[0]);
     
     int w_lcd = w, h_lcd = h;
-    for (i = 0; i < PRIMES_COUNT; i++) {
+    for (size_t i = 0; i < primes_count; i++) {
         int prime = primes[i];
         while (w_lcd >= prime && h_lcd >= prime && w_lcd % prime == 0 && h_lcd % prime == 0) {
             w_lcd /= prime; h_lcd /= prime;
@@ -119,7 +125,7 @@ char *arVideoUtilFindAspectRatioName(int w, int h)
     }
     
     // Find.
-    for (i = 0; i < _ASPECT_RATIOS_COUNT; i++) {
+    for (size_t i = 0; i < _ASPECT_RATIOS_COUNT; i++) {
         if (w_lcd == aspectRatios[i].width && h_lcd == aspectRatios[i].height) return (strdup(aspectRatios[i].name));
     }
 #ifdef _WIN32

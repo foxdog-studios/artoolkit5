@@ -650,7 +650,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
         return 0;
     }
 
-    for (vid->n_buffers = 0; vid->n_buffers < req.count; ++vid->n_buffers) {
+    for (vid->n_buffers = 0; (size_t)vid->n_buffers < req.count; ++vid->n_buffers) {
         struct v4l2_buffer buf;
         memset(&buf, 0, sizeof(buf));
         buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;

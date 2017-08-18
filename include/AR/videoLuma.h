@@ -42,9 +42,7 @@
 typedef struct _ARVideoLumaInfo ARVideoLumaInfo;
 
 ARVideoLumaInfo *arVideoLumaInit(int xsize, int ysize, AR_PIXEL_FORMAT pixFormat);
-
-ARUint8 *__restrict arVideoLuma(ARVideoLumaInfo *vli, const ARUint8 *__restrict dataPtr);
-
+ARUint8 *arVideoLuma(ARVideoLumaInfo *vli, const ARUint8 *__restrict dataPtr);
 int arVideoLumaFinal(ARVideoLumaInfo **vli_p);
 
 #endif // !AR_VIDEO_LUMA_H

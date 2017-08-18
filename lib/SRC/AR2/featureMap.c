@@ -68,7 +68,14 @@ int ar2SaveFeatureMap( char *filename, char *ext, AR2FeatureMapT *featureMap )
 
     if( fwrite(&(featureMap->xsize), sizeof(featureMap->xsize), 1, fp) != 1 ) goto bailBadWrite;
     if( fwrite(&(featureMap->ysize), sizeof(featureMap->ysize), 1, fp) != 1 ) goto bailBadWrite;
-    if( fwrite(featureMap->map, sizeof(float), (featureMap->xsize)*(featureMap->ysize), fp) != (featureMap->xsize)*(featureMap->ysize) ) goto bailBadWrite;
+
+    {
+        size_t const nmemb = featureMap->xsize * featureMap->ysize;
+
+        if (fwrite(featureMap->map, sizeof(float), nmemb, fp) != nmemb) {
+            goto bailBadWrite;
+        }
+    }
 
     fclose(fp);
     return 0;
@@ -104,11 +111,15 @@ AR2FeatureMapT *ar2ReadFeatureMap( char *filename, char *ext )
 
     arMalloc( featureMap->map, float, (featureMap->xsize)*(featureMap->ysize) );
 
-    if( fread(featureMap->map, sizeof(float), (featureMap->xsize)*(featureMap->ysize), fp) != (featureMap->xsize)*(featureMap->ysize) ) {
-        free(featureMap->map);
-        free(featureMap);
-        fclose(fp);
-        return NULL;
+    {
+        size_t const nmemb = featureMap->xsize * featureMap->ysize;
+
+        if (fread(featureMap->map, sizeof(float), nmemb, fp) != nmemb) {
+            free(featureMap->map);
+            free(featureMap);
+            fclose(fp);
+            return NULL;
+        }
     }
 
     fclose(fp);

@@ -666,7 +666,7 @@ char *arUtilGetFileBasenameFromPath(const char *path, const int convertToLowerca
     char *sep;
     size_t len;
     char *ret;
-    int i;
+    size_t i;
 
     if (!path || !*path) return (NULL);
 
@@ -696,7 +696,7 @@ char *arUtilGetFileExtensionFromPath(const char *path, const int convertToLowerc
     char *sep;
     size_t len;
     char *ret;
-    int i;
+    size_t i;
 
     if (!path || !*path) return (NULL);
 

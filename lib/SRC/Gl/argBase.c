@@ -173,8 +173,10 @@ ARGViewportHandle *argCreateViewport( ARGViewport *viewport )
 {
     ARGViewportHandle *handle;
 
-    if( winHandle == NULL ) {
-        if( argCreateWindow(viewport->sx+viewport->xsize, viewport->sy+viewport->ysize) < 0 ) return NULL;
+    if (winHandle == NULL) {
+        if (argCreateWindow(viewport->sx + viewport->xsize,
+                            viewport->sy + viewport->ysize) == NULL)
+            return NULL;
     }
 
     handle = (ARGViewportHandle *)malloc(sizeof(ARGViewportHandle));
@@ -344,4 +346,3 @@ ARGWindowHandle *argGetWinHandle( void )
 {
     return winHandle;
 }
-

@@ -62,15 +62,23 @@ int arParamLTSave( char *filename, char *ext, ARParamLT *paramLT )
         fclose(fp);
         return -1;
     }
-    if( fwrite( paramLT->paramLTf.i2o, sizeof(float), paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2, fp )
-       != paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2 ) {
-        fclose(fp);
-        return -1;
+
+    {
+        size_t nmemb = paramLT->paramLTf.xsize * paramLT->paramLTf.ysize * 2;
+
+        if (fwrite(paramLT->paramLTf.i2o, sizeof(float), nmemb, fp) != nmemb) {
+            fclose(fp);
+            return -1;
+        }
     }
-    if( fwrite( paramLT->paramLTf.o2i, sizeof(float), paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2, fp )
-       != paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2 ) {
-        fclose(fp);
-        return -1;
+
+    {
+        size_t nmemb = paramLT->paramLTf.xsize * paramLT->paramLTf.ysize * 2;
+
+        if (fwrite(paramLT->paramLTf.o2i, sizeof(float), nmemb, fp) != nmemb) {
+            fclose(fp);
+            return -1;
+        }
     }
     //if( fwrite( paramLT->paramLTi.i2o, sizeof(short), paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2, fp )
     //   != paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2 ) {
@@ -118,25 +126,32 @@ ARParamLT *arParamLTLoad( char *filename, char *ext )
     //arMalloc(paramLT->paramLTi.i2o, short, paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2);
     //arMalloc(paramLT->paramLTi.o2i, short, paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2);
 
-    if( fread( paramLT->paramLTf.i2o, sizeof(float), paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2, fp )
-       != paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2 ) {
-        free(paramLT->paramLTf.i2o);
-        free(paramLT->paramLTf.o2i);
-        //free(paramLT->paramLTi.i2o);
-        //free(paramLT->paramLTi.o2i);
-        free(paramLT);
-        fclose(fp);
-        return NULL;
+    {
+        size_t nmemb = paramLT->paramLTf.xsize * paramLT->paramLTf.ysize * 2;
+
+        if (fread( paramLT->paramLTf.i2o, sizeof(float), nmemb, fp) != nmemb) {
+            free(paramLT->paramLTf.i2o);
+            free(paramLT->paramLTf.o2i);
+            //free(paramLT->paramLTi.i2o);
+            //free(paramLT->paramLTi.o2i);
+            free(paramLT);
+            fclose(fp);
+            return NULL;
+        }
     }
-    if( fread( paramLT->paramLTf.o2i, sizeof(float), paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2, fp )
-       != paramLT->paramLTf.xsize*paramLT->paramLTf.ysize*2 ) {
-        free(paramLT->paramLTf.i2o);
-        free(paramLT->paramLTf.o2i);
-        //free(paramLT->paramLTi.i2o);
-        //free(paramLT->paramLTi.o2i);
-        free(paramLT);
-        fclose(fp);
-        return NULL;
+
+    {
+        size_t nmemb = paramLT->paramLTf.xsize * paramLT->paramLTf.ysize * 2;
+
+        if (fread(paramLT->paramLTf.o2i, sizeof(float), nmemb, fp) != nmemb) {
+            free(paramLT->paramLTf.i2o);
+            free(paramLT->paramLTf.o2i);
+            //free(paramLT->paramLTi.i2o);
+            //free(paramLT->paramLTi.o2i);
+            free(paramLT);
+            fclose(fp);
+            return NULL;
+        }
     }
     //if( fread( paramLT->paramLTi.i2o, sizeof(short), paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2, fp )
     //   != paramLT->paramLTi.xsize*paramLT->paramLTi.ysize*2 ) {
