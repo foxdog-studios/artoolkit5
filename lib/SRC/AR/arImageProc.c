@@ -41,8 +41,10 @@
 #  include <Accelerate/Accelerate.h>
 #endif
 
-ARImageProcInfo *arImageProcInit(const int xsize, const int ysize, const AR_PIXEL_FORMAT pixFormat, int alwaysCopy)
-{
+ARImageProcInfo *arImageProcInit(const int xsize, const int ysize,
+                                 __attribute__((unused))
+                                 const AR_PIXEL_FORMAT pixFormat,
+                                 int __attribute__((unused)) alwaysCopy) {
     ARImageProcInfo *ipi = (ARImageProcInfo *)malloc(sizeof(ARImageProcInfo));
     if (ipi) {
         ipi->image2 = NULL;

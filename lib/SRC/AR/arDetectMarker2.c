@@ -131,8 +131,9 @@ int arDetectMarker2( int xsize, int ysize, ARLabelInfo *labelInfo, int imageProc
     return 0;
 }
 
-int arGetContour( AR_LABELING_LABEL_TYPE *limage, int xsize, int ysize, int *label_ref, int label,
-                  int clip[4], ARMarkerInfo2 *marker_info2)
+int arGetContour(AR_LABELING_LABEL_TYPE *limage, int xsize,
+                 __attribute__((unused)) int ysize, int *label_ref, int label,
+                 int clip[4], ARMarkerInfo2 *marker_info2)
 {
     int        xdir[8] = { 0, 1, 1, 1, 0,-1,-1,-1};
     int        ydir[8] = {-1,-1, 0, 1, 1, 1, 0,-1};

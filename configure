@@ -9,7 +9,7 @@ function main()
     mkdir -p $build
 
     export CFLAGS='-march=native -mtune=native'
-    meson --warnlevel 1 -D c_std=gnu11 $build
+    meson --warnlevel 2 -D c_std=gnu11 $build
 
     cd $build
     meson configure

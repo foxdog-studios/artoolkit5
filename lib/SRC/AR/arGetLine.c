@@ -62,8 +62,9 @@
 #  define FABS(x) fabs(x)
 #endif
 
-int arGetLine(int x_coord[], int y_coord[], int coord_num, int vertex[], ARParamLTf *paramLTf,
-              ARdouble line[4][3], ARdouble v[4][2])
+int arGetLine(int x_coord[], int y_coord[],
+              __attribute__((unused)) int coord_num, int vertex[],
+              ARParamLTf *paramLTf, ARdouble line[4][3], ARdouble v[4][2])
 {
     ARMat    *input, *evec;
     ARVec    *ev, *mean;
