@@ -188,64 +188,6 @@ static int bgr24ToBgr24(const int width, const int height,
     return 0;
 }
 
-// destination format AR_PIX_FORMAT_BGRA
-static int yuyvToBgr32(int width, int height, const void *src, void *dst)
-{
-    unsigned char *yuyv_image = (unsigned char*) src;
-    unsigned char *rgb_image = (unsigned char*) dst;
-    const int K1 = (int)(1.402f * (1 << 16));
-    const int K2 = (int)(0.714f * (1 << 16));
-    const int K3 = (int)(0.334f * (1 << 16));
-    const int K4 = (int)(1.772f * (1 << 16));
-
-    typedef unsigned char T;
-    T* out_ptr = &rgb_image[0];
-    const T a = 0xff;
-    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
-    int x, y;
-    for (y=0; y<height; y++) {
-        const T* src = yuyv_image + pitch * y;
-        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
-            T Y1 = src[x + 0];
-            T U  = src[x + 1];
-            T Y2 = src[x + 2];
-            T V  = src[x + 3];
-
-            char uf = U - 128;
-            char vf = V - 128;
-
-            int R = Y1 + (K1*vf >> 16);
-            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
-            int B = Y1 + (K4*uf >> 16);
-
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-            *out_ptr++ = a;
-
-            R = Y2 + (K1*vf >> 16);
-            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
-            B = Y2 + (K4*uf >> 16);
-
-            saturate(&R, 0, 255);
-            saturate(&G, 0, 255);
-            saturate(&B, 0, 255);
-
-            *out_ptr++ = (T)(B);
-            *out_ptr++ = (T)(G);
-            *out_ptr++ = (T)(R);
-            *out_ptr++ = a;
-        }
-
-    }
-
-    return 0;
-}
-
 // destination format AR_PIX_FORMAT_BGR
 static int yuyvToBgr24(int width, int height, const void *src, void *dst)
 {
@@ -885,7 +827,6 @@ AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
         jpeg_start_decompress(&cinfo);
 
         int width = cinfo.output_width;
-        int height = cinfo.output_height;
         int pixelSize = cinfo.output_components;
 
         while (cinfo.output_scanline < cinfo.output_height) {

@@ -184,7 +184,6 @@ typedef struct _ARGL_CONTEXT_SETTINGS ARGL_CONTEXT_SETTINGS;
 // ============================================================================
 
 
-#pragma mark -
 // ============================================================================
 //	Private functions.
 // ============================================================================
@@ -318,7 +317,6 @@ static char arglSetupTextureObjects(ARGL_CONTEXT_SETTINGS_REF contextSettings)
 
 #endif // !ARGL_DISABLE_DISP_IMAGE
 
-#pragma mark -
 // ============================================================================
 //	Public functions.
 // ============================================================================

@@ -214,7 +214,7 @@ static int check_square( int area, ARMarkerInfo2 *marker_info2, ARdouble factor 
 {
     int             sx, sy;
     int             dmax, d, v1;
-    int             vertex[10], vnum;
+    int             vertex[10];
     int             wv1[10], wvnum1, wv2[10], wvnum2, v2;
     ARdouble          thresh;
     int             i;
@@ -233,7 +233,6 @@ static int check_square( int area, ARMarkerInfo2 *marker_info2, ARdouble factor 
     }
 
     thresh = (area/0.75) * 0.01 * factor;
-    vnum = 1;
     vertex[0] = 0;
     wvnum1 = 0;
     wvnum2 = 0;

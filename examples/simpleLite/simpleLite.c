@@ -367,8 +367,6 @@ static void mainLoop(void)
 	int ms;
 	float s_elapsed;
 	AR2VideoBufferT *image;
-	ARdouble err;
-
     int             j, k;
 	
 	// Find out how long since mainLoop() last ran.
@@ -413,7 +411,7 @@ static void mainLoop(void)
 		
 		if (k != -1) {
 			// Get the transformation between the marker and the real camera into gPatt_trans.
-			err = arGetTransMatSquare(gAR3DHandle, &(gARHandle->markerInfo[k]), gPatt_width, gPatt_trans);
+			arGetTransMatSquare(gAR3DHandle, &(gARHandle->markerInfo[k]), gPatt_width, gPatt_trans);
 			gPatt_found = TRUE;
 		} else {
 			gPatt_found = FALSE;
