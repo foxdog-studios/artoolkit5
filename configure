@@ -7,7 +7,11 @@ function main()
 
     rm -fr $build
     mkdir -p $build
-    meson $build
+
+    export CC=clang
+    export CFLAGS='-march=native -mtune=native'
+    meson --warnlevel 1 -D c_std=gnu11 $build
+
     cd $build
     mesonconf
     ninja
