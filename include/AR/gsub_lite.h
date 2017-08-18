@@ -81,6 +81,8 @@
 #else
 #  ifdef _WIN32
 #    include <windows.h>
+#  else
+#    include <GL/glew.h>
 #  endif
 #  include <GL/gl.h>
 #endif
