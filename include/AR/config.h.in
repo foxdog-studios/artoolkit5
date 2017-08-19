@@ -270,7 +270,7 @@ enum {
 
 // Other Linux-only configuration.
 #define HAVE_LIBJPEG 1
-#define HAVE_INTEL_SIMD 1
+#mesondefine HAVE_INTEL_SIMD
 
 #endif // __linux
 

@@ -19,9 +19,12 @@ cfg.set('AR_DEFAULT_INPUT_IMAGE',     false)
 cfg.set('AR_DEFAULT_INPUT_DUMMY',     false)
 
 # Default pixel formats
-pix_fmt_bgr = 'AR_PIXEL_FORMAT_BGR'
+pix_fmt_bgr  = 'AR_PIXEL_FORMAT_BGR'
 pix_fmt_bgra = 'AR_PIXEL_FORMAT_BGRA'
 cfg.set('AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT', pix_fmt_bgr)
+
+# Intel SIMD
+cfg.set10('HAVE_INTEL_SIMD', false)
 
 configuration_file = configure_file(
   input : 'config.h.in',
