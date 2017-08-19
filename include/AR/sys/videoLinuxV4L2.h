@@ -80,6 +80,7 @@ typedef struct {
     char                   dev[256];
     int                    width;
     int                    height;
+    int                    bytes_per_pixel;
     int                    channel;
     int                    mode;
     AR_PIXEL_FORMAT        format;

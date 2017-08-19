@@ -349,7 +349,6 @@ int ar2VideoDispOptionV4L2( void )
 AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     AR2VideoParamV4L2T *vid;
     struct v4l2_capability vd;
-    struct v4l2_input ipt;
     struct v4l2_requestbuffers req;
 
     const char *a;
@@ -545,33 +544,43 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         ARLOGi("  Version:  %d\n", vd.version);
     }
 
-    {
-        struct v4l2_format fmt;
-        memset(&fmt, 0, sizeof(fmt));
+    struct v4l2_format fmt;
+    memset(&fmt, 0, sizeof(fmt));
 
-        fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        fmt.fmt.pix.width       = vid->width;
-        fmt.fmt.pix.height      = vid->height;
-        fmt.fmt.pix.pixelformat = vid->palette;
-        fmt.fmt.pix.field       = V4L2_FIELD_NONE;
+    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.fmt.pix.width       = vid->width;
+    fmt.fmt.pix.height      = vid->height;
+    fmt.fmt.pix.pixelformat = vid->palette;
+    fmt.fmt.pix.field       = V4L2_FIELD_NONE;
 
-        if (xioctl(vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
+    if (xioctl(vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
+        close(vid->fd);
+        free(vid);
+        ARLOGe("ar2VideoOpen: Error setting video format (%d)\n", errno);
+        return NULL;
+    }
+
+    // Get actual camera settings.
+    vid->width = fmt.fmt.pix.width;
+    vid->height = fmt.fmt.pix.height;
+    vid->palette = fmt.fmt.pix.pixelformat;
+
+    switch (vid->palette) {
+        case V4L2_PIX_FMT_MJPEG:
+            vid->bytes_per_pixel = 3;
+            break;
+        default:
             close(vid->fd);
             free(vid);
-            ARLOGe("ar2VideoOpen: Error setting video format (%d)\n", errno);
+            ARLOGe("Bytes per pixel unknown for format %d.\n", vid->palette);
             return NULL;
-        }
+    }
 
-        // Get actual camera settings.
-        vid->width = fmt.fmt.pix.width;
-        vid->height = fmt.fmt.pix.height;
-        vid->palette = fmt.fmt.pix.pixelformat;
-
-        if (vid->debug) {
-            ARLOGi("  Width:    %d\n", vid->width);
-            ARLOGi("  Height:   %d\n", vid->height);
-            printPalette(vid->palette);
-        }
+    if (vid->debug) {
+        ARLOGi("  Width:    %d\n", vid->width);
+        ARLOGi("  Height:   %d\n", vid->height);
+        ARLOGi("  Bytes Per Pixel: %d\n", vid->bytes_per_pixel);
+        printPalette(vid->palette);
     }
 
     switch (vid->palette) {
@@ -601,6 +610,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
             return NULL;
     }
 
+    struct v4l2_input ipt;
     memset(&ipt, 0, sizeof(ipt));
     ipt.index = vid->channel;
     ipt.std = vid->mode;
@@ -666,12 +676,10 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         }
     }
 
-    //    if (vid->palette==V4L2_PIX_FMT_YUYV)
-#if defined(AR_PIX_FORMAT_BGRA)
-    arMalloc( vid->videoBuffer, ARUint8, vid->width*vid->height*4 );
-#else
-    arMalloc( vid->videoBuffer, ARUint8, vid->width*vid->height*3 );
-#endif
+    arMalloc(vid->videoBuffer,
+             ARUint8,
+             vid->width * vid->height * vid->bytes_per_pixel);
+
     // Setup memory mapping
     memset(&req, 0, sizeof(req));
     req.count = 2;
