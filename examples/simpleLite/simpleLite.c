@@ -276,7 +276,7 @@ static void cleanup(void)
         arVideoClose();
 }
 
-static void Keyboard(unsigned char key, int x, int y)
+static void Keyboard(unsigned char key, int __attribute__((unused)) x, __attribute__((unused)) int y)
 {
         int mode, threshChange = 0;
     AR_LABELING_THRESH_MODE modea;

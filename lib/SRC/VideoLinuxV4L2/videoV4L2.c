@@ -174,6 +174,20 @@ static int setControl(int fd, int type, int value) {
     return 0;
 }
 
+static inline ARUint8 const *
+get_src_buffer(AR2VideoParamV4L2T const *const video) {
+    return (ARUint8 const *)video->buffers[video->video_cont_num].start;
+}
+
+static inline int
+get_size(AR2VideoParamV4L2T const *const video) {
+    return video->width * video->height * video->bytes_per_pixel;
+}
+
+static inline ARUint8 *get_dst_buffer(AR2VideoParamV4L2T const *const video) {
+    return video->videoBuffer;
+}
+
 // YUYV, aka YUV422, to RGB
 // from http://pastebin.com/mDcwqJV3
 static inline
@@ -183,41 +197,40 @@ void saturate(int* value, int min_val, int max_val)
     if (*value > max_val) *value = max_val;
 }
 
-static int bgr24ToBgr24(const int width, const int height,
-                        const void *const src, void *const dst)
-{
-    memcpy(dst, src, width * height * 3);
+static int bgr24_to_bgr24(AR2VideoParamV4L2T const *const video) {
+    memcpy(get_dst_buffer(video), get_src_buffer(video), get_size(video));
     return 0;
 }
 
-// destination format AR_PIX_FORMAT_BGR
-static int yuyvToBgr24(int width, int height, const void *src, void *dst)
-{
-    unsigned char *yuyv_image = (unsigned char*) src;
-    unsigned char *rgb_image = (unsigned char*) dst;
+static int yuyv_to_bgr(AR2VideoParamV4L2T const *const video) {
+    unsigned char *yuyv_image = (unsigned char *)get_src_buffer(video);
+    unsigned char *rgb_image = (unsigned char *)get_dst_buffer(video);
+
     const int K1 = (int)(1.402f * (1 << 16));
     const int K2 = (int)(0.714f * (1 << 16));
     const int K3 = (int)(0.334f * (1 << 16));
     const int K4 = (int)(1.772f * (1 << 16));
 
     typedef unsigned char T;
-    T* out_ptr = &rgb_image[0];
+    T *out_ptr = &rgb_image[0];
+    int const width = video->width;
     const int pitch = width * 2; // 2 bytes per one YU-YV pixel
-    int x, y;
-    for (y=0; y<height; y++) {
-        const T* src = yuyv_image + pitch * y;
-        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
+
+    int const height = video->height;
+    for (int y = 0; y < height; y++) {
+        const T *src = yuyv_image + pitch * y;
+        for (int x = 0; x < width * 2; x += 4) { // Y1 U Y2 V
             T Y1 = src[x + 0];
-            T U  = src[x + 1];
+            T U = src[x + 1];
             T Y2 = src[x + 2];
-            T V  = src[x + 3];
+            T V = src[x + 3];
 
             char uf = U - 128;
             char vf = V - 128;
 
-            int R = Y1 + (K1*vf >> 16);
-            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
-            int B = Y1 + (K4*uf >> 16);
+            int R = Y1 + (K1 * vf >> 16);
+            int G = Y1 - (K2 * vf >> 16) - (K3 * uf >> 16);
+            int B = Y1 + (K4 * uf >> 16);
 
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
@@ -227,9 +240,9 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
 
-            R = Y2 + (K1*vf >> 16);
-            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
-            B = Y2 + (K4*uf >> 16);
+            R = Y2 + (K1 * vf >> 16);
+            G = Y2 - (K2 * vf >> 16) - (K3 * uf >> 16);
+            B = Y2 + (K4 * uf >> 16);
 
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
@@ -239,41 +252,40 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
             *out_ptr++ = (T)(G);
             *out_ptr++ = (T)(R);
         }
-
     }
 
     return 0;
 }
 
-// destination format AR_PIX_FORMAT_BGRA
-static int yuyvToBgr32(int width, int height, const void *src, void *dst)
-{
-    unsigned char *yuyv_image = (unsigned char*) src;
-    unsigned char *rgb_image = (unsigned char*) dst;
+static int yuyv_to_bgra(AR2VideoParamV4L2T const *const video) {
+    unsigned char *yuyv_image = (unsigned char *)get_src_buffer(video);
+    unsigned char *rgb_image = (unsigned char *)get_dst_buffer(video);
     const int K1 = (int)(1.402f * (1 << 16));
     const int K2 = (int)(0.714f * (1 << 16));
     const int K3 = (int)(0.334f * (1 << 16));
     const int K4 = (int)(1.772f * (1 << 16));
 
     typedef unsigned char T;
-    T* out_ptr = &rgb_image[0];
+    T *out_ptr = &rgb_image[0];
     const T a = 0xff;
+    int const width = video->width;
     const int pitch = width * 2; // 2 bytes per one YU-YV pixel
-    int x, y;
-    for (y=0; y<height; y++) {
-        const T* src = yuyv_image + pitch * y;
-        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
+
+    int const height = video->height;
+    for (int y = 0; y < height; y++) {
+        const T *src = yuyv_image + pitch * y;
+        for (int x = 0; x < width * 2; x += 4) { // Y1 U Y2 V
             T Y1 = src[x + 0];
-            T U  = src[x + 1];
+            T U = src[x + 1];
             T Y2 = src[x + 2];
-            T V  = src[x + 3];
+            T V = src[x + 3];
 
             char uf = U - 128;
             char vf = V - 128;
 
-            int R = Y1 + (K1*vf >> 16);
-            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
-            int B = Y1 + (K4*uf >> 16);
+            int R = Y1 + (K1 * vf >> 16);
+            int G = Y1 - (K2 * vf >> 16) - (K3 * uf >> 16);
+            int B = Y1 + (K4 * uf >> 16);
 
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
@@ -284,9 +296,9 @@ static int yuyvToBgr32(int width, int height, const void *src, void *dst)
             *out_ptr++ = (T)(R);
             *out_ptr++ = a;
 
-            R = Y2 + (K1*vf >> 16);
-            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
-            B = Y2 + (K4*uf >> 16);
+            R = Y2 + (K1 * vf >> 16);
+            G = Y2 - (K2 * vf >> 16) - (K3 * uf >> 16);
+            B = Y2 + (K4 * uf >> 16);
 
             saturate(&R, 0, 255);
             saturate(&G, 0, 255);
@@ -297,19 +309,43 @@ static int yuyvToBgr32(int width, int height, const void *src, void *dst)
             *out_ptr++ = (T)(R);
             *out_ptr++ = a;
         }
-
     }
 
     return 0;
 }
 
-static int mjpegToBgr24(__attribute__((unused)) int width,
-                        __attribute__((unused)) int height,
-                        __attribute__((unused)) const void *src,
-                        __attribute__((unused)) void *dst) {
+static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
+    ARUint8 const *const buffer = get_src_buffer(video);
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, buffer, video->width * video->height * video->bytes_per_pixel);
+
+    int rc = jpeg_read_header(&cinfo, TRUE);
+    if (rc != 1) {
+        ARLOGe("Bad JPEG\n");
+        return -1;
+    }
+
+    cinfo.out_color_space = JCS_EXT_BGR;
+    jpeg_start_decompress(&cinfo);
+
+    int width = cinfo.output_width;
+    int pixelSize = cinfo.output_components;
+
+    while (cinfo.output_scanline < cinfo.output_height) {
+        unsigned char *buffer_array[1];
+        buffer_array[0] =
+            video->videoBuffer + cinfo.output_scanline * (width * pixelSize);
+        jpeg_read_scanlines(&cinfo, buffer_array, 1);
+    }
+
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
     return 0;
 }
-
 /*-------------------------------------------*/
 
 int ar2VideoDispOptionV4L2( void )
@@ -584,32 +620,41 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         printPalette(vid->palette);
     }
 
+    // -- Setup frame processing -------------------------------------------
+
+    vid->process_frame = NULL;
+
     switch (vid->palette) {
         case V4L2_PIX_FMT_BGR24:
-            if (vid->format == AR_PIXEL_FORMAT_RGB) {
-                vid->toArPixelFormat = bgr24ToBgr24;
+            if (vid->format == AR_PIXEL_FORMAT_RGBA) {
+                vid->process_frame = bgr24_to_bgr24;
             }
             break;
 
         case V4L2_PIX_FMT_YUYV:
-            if (vid->format == AR_PIXEL_FORMAT_RGB) {
-                vid->toArPixelFormat = yuyvToBgr24;
-            } else if (vid->format == AR_PIXEL_FORMAT_RGBA) {
-                vid->toArPixelFormat = yuyvToBgr32;
+            if (vid->format == AR_PIXEL_FORMAT_BGR) {
+                vid->process_frame = yuyv_to_bgr;
+            } else if (vid->format == AR_PIXEL_FORMAT_BGRA) {
+                vid->process_frame = yuyv_to_bgra;
             }
             break;
 
         case V4L2_PIX_FMT_MJPEG:
-            vid->toArPixelFormat = mjpegToBgr24;
+            if (vid->format == AR_PIXEL_FORMAT_BGR) {
+                vid->process_frame = mjpeg_to_brg;
+            }
             break;
-
-        default:
-            close(vid->fd);
-            free(vid);
-            ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
-                   "internal pixel format.\n");
-            return NULL;
     }
+
+    if (vid->process_frame == NULL) {
+        close(vid->fd);
+        free(vid);
+        ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
+               "internal pixel format.\n");
+        return NULL;
+    }
+
+    // ---------------------------------------------------------------------
 
     struct v4l2_input ipt;
     memset(&ipt, 0, sizeof(ipt));
@@ -847,16 +892,18 @@ int ar2VideoCapStopV4L2( AR2VideoParamV4L2T *vid )
 }
 
 
-AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
-{
-    if (!vid) return NULL;
 
-    if (vid->video_cont_num < 0){
-        ARLOGe("arVideoCapStart has never been called.\n");
+AR2VideoBufferT *ar2VideoGetImageV4L2(AR2VideoParamV4L2T *const vid) {
+    if (!vid) {
         return NULL;
     }
 
-    AR2VideoBufferT *out = &(vid->buffer.out);
+    if (vid->video_cont_num < 0){
+        ARLOGe("Video capture is not started.\n");
+        return NULL;
+    }
+
+    AR2VideoBufferT *const out = &(vid->buffer.out);
     memset(out, 0, sizeof(*out));
 
     struct v4l2_buffer buf;
@@ -871,41 +918,8 @@ AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
 
     vid->video_cont_num = buf.index;
 
-    ARUint8 *buffer = (ARUint8*)vid->buffers[buf.index].start;
-
-
-    if (vid->palette == V4L2_PIX_FMT_MJPEG) {
-        struct jpeg_decompress_struct cinfo;
-        struct jpeg_error_mgr jerr;
-
-        cinfo.err = jpeg_std_error(&jerr);
-        jpeg_create_decompress(&cinfo);
-        jpeg_mem_src(&cinfo, buffer, buf.length);
-
-        int rc = jpeg_read_header(&cinfo, TRUE);
-        if (rc != 1) {
-            ARLOGe("Bad JPEG\n");
-            exit(-1);
-        }
-
-        cinfo.out_color_space = JCS_EXT_BGR;
-        jpeg_start_decompress(&cinfo);
-
-        int width = cinfo.output_width;
-        int pixelSize = cinfo.output_components;
-
-        while (cinfo.output_scanline < cinfo.output_height) {
-            unsigned char *buffer_array[1];
-            buffer_array[0] = vid->videoBuffer + cinfo.output_scanline * \
-                              (width * pixelSize);
-            jpeg_read_scanlines(&cinfo, buffer_array, 1);
-        }
-
-        jpeg_finish_decompress(&cinfo);
-        jpeg_destroy_decompress(&cinfo);
-    } else if (vid->toArPixelFormat(vid->width, vid->height, buffer,
-                                   vid->videoBuffer) != 0) {
-        ARLOGe("Could not convert image to ARToolkit pixel format.");
+    if (vid->process_frame(vid) != 0) {
+        ARLOGe("Could not convert image to ARToolkit pixel format.\n");
         return out;
     }
 

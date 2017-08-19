@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 	return (0);
 }
 
-static void   keyEvent( unsigned char key, int x, int y)
+static void   keyEvent( unsigned char key, __attribute__((unused)) int x, __attribute__((unused)) int y)
 {
     int     debug;
     int     thresh;

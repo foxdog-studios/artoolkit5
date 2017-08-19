@@ -76,7 +76,9 @@ struct buffer_ar_v4l2 {
     size_t    length;
 };
 
-typedef struct {
+typedef struct AR2VideoParamV4L2T AR2VideoParamV4L2T;
+
+struct AR2VideoParamV4L2T {
     char                   dev[256];
     int                    width;
     int                    height;
@@ -101,14 +103,14 @@ typedef struct {
     int                    video_cont_num;
     ARUint8                *videoBuffer;
 
-    int (*toArPixelFormat)(int width, int height, const void *src, void *dst);
+    int (*process_frame)(AR2VideoParamV4L2T const *video);
 
     pthread_t              capture;
     AR2VideoBufferV4L2T    buffer;
     
     struct buffer_ar_v4l2 *buffers;
     int                    n_buffers;
-} AR2VideoParamV4L2T;
+};
 
 
 int                  ar2VideoDispOptionV4L2     ( void );
