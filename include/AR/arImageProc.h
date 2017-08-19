@@ -70,7 +70,7 @@ struct _ARImageProcInfo {
 #endif
 };
 typedef struct _ARImageProcInfo ARImageProcInfo;
-    
+
 #ifdef __cplusplus
 }
 #endif
