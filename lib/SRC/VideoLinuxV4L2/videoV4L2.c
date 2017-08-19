@@ -58,14 +58,15 @@
 #include <AR/video.h>
 #include <jpeglib.h>
 
-
-
 // V4L2 code from https://gist.github.com/jayrambhia/5866483
-static int xioctl(int fd, int request, void *arg)
+static int xioctl(int const fd, int const request, void *const arg)
 {
     int r;
-    do r = ioctl(fd, request, arg);
-    while (-1 == r && EINTR == errno);
+
+    do {
+        r = ioctl(fd, request, arg);
+    } while (r == -1 && errno == EINTR);
+
     return r;
 }
 
@@ -243,8 +244,10 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
     return 0;
 }
 
-static int mjpegToBgr24(int width, int height, const void *src, void *dst)
-{
+static int mjpegToBgr24(__attribute__((unused)) int width,
+                        __attribute__((unused)) int height,
+                        __attribute__((unused)) const void *src,
+                        __attribute__((unused)) void *dst) {
     return 0;
 }
 
@@ -322,10 +325,12 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
             while( *a == ' ' || *a == '\t' ) a++;
             if( *a == '\0' ) break;
 
-            if (sscanf( a, "%s", line ) == 0) break;
+            if (sscanf(a, "%255s", line) != 1) {
+                break;
+            }
 
             if( strncmp( a, "-dev=", 5 ) == 0 ) {
-                if( sscanf( &line[5], "%s", vid->dev ) == 0 ) {
+                if (sscanf(&line[5], "%255s", vid->dev) != 1 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
                     return 0;
@@ -863,19 +868,26 @@ AR2VideoBufferT *ar2VideoGetImageV4L2( AR2VideoParamV4L2T *vid )
     return out;
 }
 
-int ar2VideoGetParamiV4L2( AR2VideoParamV4L2T *vid, int paramName, int *value )
-{
+int ar2VideoGetParamiV4L2(__attribute__((unused)) AR2VideoParamV4L2T *vid,
+                          __attribute__((unused)) int paramName,
+                          __attribute__((unused)) int *value) {
     return -1;
 }
-int ar2VideoSetParamiV4L2( AR2VideoParamV4L2T *vid, int paramName, int  value )
-{
+
+int ar2VideoSetParamiV4L2(__attribute__((unused)) AR2VideoParamV4L2T *vid,
+                          __attribute__((unused)) int paramName,
+                          __attribute__((unused)) int value) {
     return -1;
 }
-int ar2VideoGetParamdV4L2( AR2VideoParamV4L2T *vid, int paramName, double *value )
-{
+
+int ar2VideoGetParamdV4L2(__attribute__((unused)) AR2VideoParamV4L2T *vid,
+                          __attribute__((unused)) int paramName,
+                          __attribute__((unused)) double *value) {
     return -1;
 }
-int ar2VideoSetParamdV4L2( AR2VideoParamV4L2T *vid, int paramName, double  value )
-{
+
+int ar2VideoSetParamdV4L2(__attribute__((unused)) AR2VideoParamV4L2T *vid,
+                          __attribute__((unused)) int paramName,
+                          __attribute__((unused)) double value) {
     return -1;
 }
