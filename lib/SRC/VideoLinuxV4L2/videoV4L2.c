@@ -244,6 +244,64 @@ static int yuyvToBgr24(int width, int height, const void *src, void *dst)
     return 0;
 }
 
+// destination format AR_PIX_FORMAT_BGRA
+static int yuyvToBgr32(int width, int height, const void *src, void *dst)
+{
+    unsigned char *yuyv_image = (unsigned char*) src;
+    unsigned char *rgb_image = (unsigned char*) dst;
+    const int K1 = (int)(1.402f * (1 << 16));
+    const int K2 = (int)(0.714f * (1 << 16));
+    const int K3 = (int)(0.334f * (1 << 16));
+    const int K4 = (int)(1.772f * (1 << 16));
+
+    typedef unsigned char T;
+    T* out_ptr = &rgb_image[0];
+    const T a = 0xff;
+    const int pitch = width * 2; // 2 bytes per one YU-YV pixel
+    int x, y;
+    for (y=0; y<height; y++) {
+        const T* src = yuyv_image + pitch * y;
+        for (x=0; x<width*2; x+=4) { // Y1 U Y2 V
+            T Y1 = src[x + 0];
+            T U  = src[x + 1];
+            T Y2 = src[x + 2];
+            T V  = src[x + 3];
+
+            char uf = U - 128;
+            char vf = V - 128;
+
+            int R = Y1 + (K1*vf >> 16);
+            int G = Y1 - (K2*vf >> 16) - (K3*uf >> 16);
+            int B = Y1 + (K4*uf >> 16);
+
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+            *out_ptr++ = a;
+
+            R = Y2 + (K1*vf >> 16);
+            G = Y2 - (K2*vf >> 16) - (K3*uf >> 16);
+            B = Y2 + (K4*uf >> 16);
+
+            saturate(&R, 0, 255);
+            saturate(&G, 0, 255);
+            saturate(&B, 0, 255);
+
+            *out_ptr++ = (T)(B);
+            *out_ptr++ = (T)(G);
+            *out_ptr++ = (T)(R);
+            *out_ptr++ = a;
+        }
+
+    }
+
+    return 0;
+}
+
 static int mjpegToBgr24(__attribute__((unused)) int width,
                         __attribute__((unused)) int height,
                         __attribute__((unused)) const void *src,
@@ -287,37 +345,34 @@ int ar2VideoDispOptionV4L2( void )
     return 0;
 }
 
-AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
-{
-
-    // Warning, this function leaks badly when an error occurs.
-    AR2VideoParamV4L2T            *vid;
-    struct v4l2_capability   vd;
-    struct v4l2_format fmt;
-    struct v4l2_input  ipt;
+// XXX: This function leaks badly when an error occurs.
+AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
+    AR2VideoParamV4L2T *vid;
+    struct v4l2_capability vd;
+    struct v4l2_input ipt;
     struct v4l2_requestbuffers req;
 
     const char *a;
     char line[256];
-    int value;
 
-    arMalloc( vid, AR2VideoParamV4L2T, 1 );
-    strcpy( vid->dev, AR_VIDEO_V4L2_DEFAULT_DEVICE );
-    vid->width      = AR_VIDEO_V4L2_DEFAULT_WIDTH;
-    vid->height     = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
-    vid->channel    = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
-    vid->mode       = AR_VIDEO_V4L2_DEFAULT_MODE;
-    vid->format     = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
-    vid->palette = V4L2_PIX_FMT_YUYV;     /* palette format */
-    vid->contrast   = -1;
-    vid->brightness = -1;
-    vid->saturation = -1;
-    vid->hue        = -1;
-    vid->gamma  = -1;
-    vid->exposure  = -1;
-    vid->gain  = 1;
-    vid->debug      = 0;
-    vid->videoBuffer=NULL;
+    arMalloc(vid, AR2VideoParamV4L2T, 1);
+    strcpy(vid->dev, AR_VIDEO_V4L2_DEFAULT_DEVICE);
+
+    vid->width       = AR_VIDEO_V4L2_DEFAULT_WIDTH;
+    vid->height      = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
+    vid->channel     = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
+    vid->mode        = AR_VIDEO_V4L2_DEFAULT_MODE;
+    vid->format      = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
+    vid->palette     = V4L2_PIX_FMT_YUYV;
+    vid->contrast    = -1;
+    vid->brightness  = -1;
+    vid->saturation  = -1;
+    vid->hue         = -1;
+    vid->gamma       = -1;
+    vid->exposure    = -1;
+    vid->gain        = 1;
+    vid->debug       = 0;
+    vid->videoBuffer = NULL;
 
     a = config;
     if( a != NULL) {
@@ -463,86 +518,80 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
         }
     }
 
-    vid->fd = open(vid->dev, O_RDWR);// O_RDONLY ?
-    if(vid->fd < 0){
-        ARLOGe("video device (%s) open failed\n",vid->dev);
-        free( vid );
-        return 0;
-    }
+    // It appears that read-write is required for memory-mapping to works.
+    vid->fd = open(vid->dev, O_RDWR);
 
-    if(xioctl(vid->fd,VIDIOC_QUERYCAP,&vd) < 0){
-        ARLOGe("xioctl failed\n");
-        free( vid );
-        return 0;
-    }
-
-    if (!(vd.capabilities & V4L2_CAP_STREAMING)) {
-        ARLOGe("Device does not support streaming i/o\n");
-    }
-
-    if (vid->debug) {
-        ARLOGi("=== debug info ===\n");
-        ARLOGi("  vd.driver        =   %s\n",vd.driver);
-        ARLOGi("  vd.card          =   %s\n",vd.card);
-        ARLOGi("  vd.bus_info      =   %s\n",vd.bus_info);
-        ARLOGi("  vd.version       =   %d\n",vd.version);
-    }
-
-    memset(&fmt, 0, sizeof(fmt));
-
-    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-#if 1
-    fmt.fmt.pix.width       = vid->width;
-    fmt.fmt.pix.height      = vid->height;
-    fmt.fmt.pix.pixelformat = vid->palette;
-    fmt.fmt.pix.field       = V4L2_FIELD_NONE;
-#else
-    fmt.fmt.pix.width       = 640;
-    fmt.fmt.pix.height      = 480;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-    fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-#endif
-
-    if (xioctl(vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
-        close(vid->fd);
+    if (vid->fd < 0) {
+        ARLOGe("Could not open video device. (%s)\n", vid->dev);
         free(vid);
-        ARLOGe("ar2VideoOpen: Error setting video format (%d)\n", errno);
         return NULL;
     }
 
-    // Get actual camera settings
-    vid->palette = fmt.fmt.pix.pixelformat;
-    vid->width = fmt.fmt.pix.width;
-    vid->height = fmt.fmt.pix.height;
+    if (xioctl(vid->fd, VIDIOC_QUERYCAP, &vd) < 0) {
+        ARLOGe("Coult not query video device capabilities.\n");
+        free(vid);
+        return NULL;
+    }
+
+    if (!(vd.capabilities & V4L2_CAP_STREAMING)) {
+        ARLOGw("Device does not support streaming IO\n");
+    }
 
     if (vid->debug) {
-        ARLOGi("  Width: %d\n", fmt.fmt.pix.width);
-        ARLOGi("  Height: %d\n", fmt.fmt.pix.height);
-        printPalette(fmt.fmt.pix.pixelformat);
+        ARLOGi("Video Device:\n");
+        ARLOGi("  Driver:   %s\n", vd.driver);
+        ARLOGi("  Card:     %s\n", vd.card);
+        ARLOGi("  Bus Info: %s\n", vd.bus_info);
+        ARLOGi("  Version:  %d\n", vd.version);
+    }
+
+    {
+        struct v4l2_format fmt;
+        memset(&fmt, 0, sizeof(fmt));
+
+        fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width       = vid->width;
+        fmt.fmt.pix.height      = vid->height;
+        fmt.fmt.pix.pixelformat = vid->palette;
+        fmt.fmt.pix.field       = V4L2_FIELD_NONE;
+
+        if (xioctl(vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
+            close(vid->fd);
+            free(vid);
+            ARLOGe("ar2VideoOpen: Error setting video format (%d)\n", errno);
+            return NULL;
+        }
+
+        // Get actual camera settings.
+        vid->width = fmt.fmt.pix.width;
+        vid->height = fmt.fmt.pix.height;
+        vid->palette = fmt.fmt.pix.pixelformat;
+
+        if (vid->debug) {
+            ARLOGi("  Width:    %d\n", vid->width);
+            ARLOGi("  Height:   %d\n", vid->height);
+            printPalette(vid->palette);
+        }
     }
 
     switch (vid->palette) {
-#if defined(AR_PIXEL_FORMAT_RGBA)
-#else
         case V4L2_PIX_FMT_BGR24:
-            vid->toArPixelFormat = bgr24ToBgr24;
+            if (vid->format == AR_PIXEL_FORMAT_RGB) {
+                vid->toArPixelFormat = bgr24ToBgr24;
+            }
             break;
-#endif
 
         case V4L2_PIX_FMT_YUYV:
-#if defined(AR_PIXEL_FORMAT_RGBA)
-            vid->toArPixelFormat = yuyvToBgr32;
-#else
-            vid->toArPixelFormat = yuyvToBgr24;
-#endif
+            if (vid->format == AR_PIXEL_FORMAT_RGB) {
+                vid->toArPixelFormat = yuyvToBgr24;
+            } else if (vid->format == AR_PIXEL_FORMAT_RGBA) {
+                vid->toArPixelFormat = yuyvToBgr32;
+            }
             break;
 
-#if defined(AR_PIXEL_FORMAT_RGBA)
-#else
         case V4L2_PIX_FMT_MJPEG:
             vid->toArPixelFormat = mjpegToBgr24;
             break;
-#endif
 
         default:
             close(vid->fd);
@@ -591,7 +640,9 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(const char *config)
     setControl(vid->fd, V4L2_CID_GAIN, vid->gain);
 
     // Print out current control values
-    if (vid->debug ) {
+    if (vid->debug) {
+        int value;
+
         if (!getControl(vid->fd, V4L2_CID_BRIGHTNESS, &value)) {
             ARLOGe("Brightness: %d\n", value);
         }
