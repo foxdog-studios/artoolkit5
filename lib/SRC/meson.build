@@ -1,6 +1,7 @@
 subdir('AR')
 subdir('AR2')
 subdir('ARICP')
+subdir('ARMulti')
 subdir('Gl')
 subdir('Video')
 subdir('VideoLinuxV4L2')
