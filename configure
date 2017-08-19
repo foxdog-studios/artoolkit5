@@ -9,11 +9,10 @@ function main()
     mkdir -p $build
 
     export CFLAGS='-march=native -mtune=native -DDEBUG -Wno-unused-parameter'
-    meson --warnlevel 3 -D c_std=gnu11 $build
+    meson --warnlevel 3 -D b_lto=true -D c_std=gnu11 $build
 
     cd $build
     meson configure
-    ninja
 }
 
 main $@

@@ -20,6 +20,5 @@ simple_lite_exe = executable(
         glut_dep,
         libjpeg_dep,
         math_dep,
-        dependency('glew'),
     ]
 )
