@@ -1,4 +1,6 @@
-ar_files = files(
+subdir('arLabelingSub')
+
+ar_files = ar_labeling_sub_files + files(
     'ar3DCreateHandle.c',
     'ar3DUtil.c',
     'arCreateHandle.c',
@@ -49,10 +51,4 @@ ar_files = files(
     'vTridiag.c',
 )
 
-subdir('arLabelingSub')
-
-ar_lib = static_library(
-    'AR', [ar_files, ar_labeling_sub_files],
-    include_directories : ar_includes,
-    pic : true,
-)
+ar_lib = static_library('AR', ar_files, include_directories : ar_includes)
