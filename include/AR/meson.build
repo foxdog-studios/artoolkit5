@@ -26,5 +26,5 @@ cfg.set('AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT', pix_fmt_bgr)
 configuration_file = configure_file(
   input : 'config.h.in',
   output : '@BASENAME@',
-  configuration : cfg
+  configuration : cfg,
 )

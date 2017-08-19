@@ -6,6 +6,7 @@ ar_includes = include_directories('include')
 
 gl_dep = dependency('GL')
 glut_dep = dependency('freeglut')
+libjpeg_dep = dependency('libjpeg')
 math_dep = c_compiler.find_library('m')
 
 subdir('include/AR')

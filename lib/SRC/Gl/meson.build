@@ -7,9 +7,10 @@ ar_gsub_files = files(
     'argWindow.c',
 )
 
-ar_gsub_lib = static_library(
-    'ARgsub', ar_gsub_files,
+ar_gsub_lib = library('ARgsub', ar_gsub_files,
+    link_with : [ar_lib],
     include_directories : ar_includes,
+    dependencies : [gl_dep, glut_dep, math_dep],
 )
 
 ar_gsub_lite_files = files(
@@ -17,9 +18,10 @@ ar_gsub_lite_files = files(
     'gsub_mtx.c',
 )
 
-ar_gsub_lite_lib = static_library(
-    'ARgsub_lite', ar_gsub_lite_files,
+ar_gsub_lite_lib = library('ARgsub_lite', ar_gsub_lite_files,
+    link_with: [ar_lib],
     include_directories: ar_includes,
+    dependencies : [gl_dep, math_dep],
 )
 
 gsub_test_files = files(
