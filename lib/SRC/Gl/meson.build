@@ -8,9 +8,10 @@ ar_gsub_files = files(
 )
 
 ar_gsub_lib = library('ARgsub', ar_gsub_files,
-    link_with : [ar_lib],
+    link_with : ar_lib,
     include_directories : ar_includes,
     dependencies : [gl_dep, glut_dep, math_dep],
+    override_options : 'unity=on',
 )
 
 ar_gsub_lite_files = files(

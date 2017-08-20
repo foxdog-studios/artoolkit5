@@ -94,8 +94,8 @@ void argMainLoop( void )
     glutMainLoop();
 }
 
-void argDefaultKeyFunc( unsigned char key, int x, int y )
-{
+void argDefaultKeyFunc(unsigned char key, __attribute__((unused)) int x,
+                       __attribute__((unused)) int y) {
     if( key == 0x1b ) {
         argCleanup();
         exit(0);

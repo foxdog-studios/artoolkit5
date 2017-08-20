@@ -287,7 +287,7 @@ static int argDrawImageTexMapRect( ARGViewportHandle *vp, ARUint8 *image, int xs
     int                   i, j;
 
     if (!vp || !image) return (-1);
-    
+
     dispMethod = (vp->dispMethod == AR_GL_DISP_METHOD_TEXTURE_MAPPING_FIELD)? 0: 1;
     distMode = (vp->distortionMode == AR_GL_DISTORTION_COMPENSATE_DISABLE)? 0: 1;
     if( argGetImageScale(vp, xsize, ysize, &s1, &s2, &offx, &offy) < 0 ) return -1;
@@ -331,7 +331,7 @@ static int argDrawImageTexMapRect( ARGViewportHandle *vp, ARUint8 *image, int xs
 
                     arParamObserv2Ideal( wparam.dist_factor, px, py, &x1, &y1, wparam.dist_function_version );
                     arParamObserv2Ideal( wparam.dist_factor, px, qy, &x2, &y2, wparam.dist_function_version );
-    
+
                     glTexCoord2d( px, py/dy ); glVertex3d( x1-0.5, y1-0.5, z );
                     glTexCoord2d( px, qy/dy ); glVertex3d( x2-0.5, y2-0.5, z );
                 }
@@ -441,11 +441,13 @@ static GLuint argGenImageTexture( int tx, int ty, int full_half, GLenum target )
     return glid;
 }
 
-static GLuint argUpdateImageTexture( ARGViewportHandle *vp, ARUint8 *image, int xsize, int ysize,
-                                     int pixFormat, int full_half, GLenum target, GLuint glid )
-{
+static GLuint argUpdateImageTexture(__attribute__((unused))
+                                    ARGViewportHandle *vp,
+                                    ARUint8 *image, int xsize, int ysize,
+                                    int pixFormat, int full_half, GLenum target,
+                                    GLuint glid) {
     GLint    saveMatrixMode;
-    
+
     glBindTexture( target, glid );
 
     glGetIntegerv( GL_MATRIX_MODE, &saveMatrixMode );
