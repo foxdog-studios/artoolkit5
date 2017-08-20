@@ -71,39 +71,56 @@ static int xioctl(int const fd, int const request, void *const arg)
     return r;
 }
 
-static void printPalette(int const pixelFormat) {
-    char *name;
-
-    switch (pixelFormat) {
+static char const *get_palette_name(int const pixel_format) {
+    switch (pixel_format) {
         // YUV formats
-        case V4L2_PIX_FMT_GREY: name = "Grey"; break;
-        case V4L2_PIX_FMT_YUYV: name = "YUYV"; break;
-        case V4L2_PIX_FMT_UYVY: name = "UYVY"; break;
-        case V4L2_PIX_FMT_Y41P: name = "Y41P"; break;
-        case V4L2_PIX_FMT_YVU420: name = "YVU420"; break;
-        case V4L2_PIX_FMT_YVU410: name = "YVU410"; break;
-        case V4L2_PIX_FMT_YUV422P: name = "YUV422P"; break;
-        case V4L2_PIX_FMT_YUV411P: name = "YUV411P"; break;
-        case V4L2_PIX_FMT_NV12: name = "NV12"; break;
-        case V4L2_PIX_FMT_NV21: name = "NV21"; break;
+        case V4L2_PIX_FMT_GREY:
+            return "Grey";
+        case V4L2_PIX_FMT_YUYV:
+            return "YUYV";
+        case V4L2_PIX_FMT_UYVY:
+            return "UYVY";
+        case V4L2_PIX_FMT_Y41P:
+            return "Y41P";
+        case V4L2_PIX_FMT_YVU420:
+            return "YVU420";
+        case V4L2_PIX_FMT_YVU410:
+            return "YVU410";
+        case V4L2_PIX_FMT_YUV422P:
+            return "YUV422P";
+        case V4L2_PIX_FMT_YUV411P:
+            return "YUV411P";
+        case V4L2_PIX_FMT_NV12:
+            return "NV12";
+        case V4L2_PIX_FMT_NV21:
+            return "NV21";
 
         // RGB formats
-        case V4L2_PIX_FMT_RGB332: name = "RGB332"; break;
-        case V4L2_PIX_FMT_RGB555: name = "RGB555"; break;
-        case V4L2_PIX_FMT_RGB565: name = "RGB565"; break;
-        case V4L2_PIX_FMT_RGB555X: name = "RGB555X"; break;
-        case V4L2_PIX_FMT_RGB565X: name = "RGB565X"; break;
-        case V4L2_PIX_FMT_BGR24: name = "BGR24"; break;
-        case V4L2_PIX_FMT_RGB24: name = "RGB24"; break;
-        case V4L2_PIX_FMT_BGR32: name = "BGR32"; break;
-        case V4L2_PIX_FMT_RGB32: name = "RGB32"; break;
+        case V4L2_PIX_FMT_RGB332:
+            return "RGB332";
+        case V4L2_PIX_FMT_RGB555:
+            return "RGB555";
+        case V4L2_PIX_FMT_RGB565:
+            return "RGB565";
+        case V4L2_PIX_FMT_RGB555X:
+            return "RGB555X";
+        case V4L2_PIX_FMT_RGB565X:
+            return "RGB565X";
+        case V4L2_PIX_FMT_BGR24:
+            return "BGR24";
+        case V4L2_PIX_FMT_RGB24:
+            return "RGB24";
+        case V4L2_PIX_FMT_BGR32:
+            return "BGR32";
+        case V4L2_PIX_FMT_RGB32:
+            return "RGB32";
 
         // Other formats
-        case V4L2_PIX_FMT_MJPEG: name = "MJPEG"; break;
-        default: name = "Unknown"; break;
+        case V4L2_PIX_FMT_MJPEG:
+            return "MJPEG";
     };
 
-    ARLOGi("  Pixel Format: %s\n", name);
+    return "Unknown";
 }
 
 static int getControl(int fd, int type, int *value) {
@@ -195,7 +212,7 @@ void saturate(int* value, int min_val, int max_val)
     if (*value > max_val) *value = max_val;
 }
 
-static int bgr24_to_bgr24(AR2VideoParamV4L2T const *const video) {
+static int bgr_to_bgr(AR2VideoParamV4L2T const *const video) {
     memcpy(get_dst_buffer(video), get_src_buffer(video), get_size(video));
     return 0;
 }
@@ -605,7 +622,16 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     vid->height = fmt.fmt.pix.height;
     vid->palette = fmt.fmt.pix.pixelformat;
 
+    if (vid->debug) {
+        ARLOGi("  Width:    %d\n", vid->width);
+        ARLOGi("  Height:   %d\n", vid->height);
+        ARLOGi("  Pixel Format: %s\n", get_palette_name(vid->palette));
+    }
+
     switch (vid->palette) {
+        case V4L2_PIX_FMT_YUYV:
+            vid->bytes_per_pixel = 2;
+            break;
         case V4L2_PIX_FMT_MJPEG:
             vid->bytes_per_pixel = 3;
             break;
@@ -617,45 +643,62 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     }
 
     if (vid->debug) {
-        ARLOGi("  Width:    %d\n", vid->width);
-        ARLOGi("  Height:   %d\n", vid->height);
         ARLOGi("  Bytes Per Pixel: %d\n", vid->bytes_per_pixel);
-        printPalette(vid->palette);
     }
 
     // -- Setup frame processing -------------------------------------------
 
-    vid->process_frame = NULL;
+    {
+        int const input_format = vid->palette;
+        AR_PIXEL_FORMAT const output_format = vid->format;
+        vid->process_frame = NULL;
 
-    switch (vid->palette) {
-        case V4L2_PIX_FMT_BGR24:
-            if (vid->format == AR_PIXEL_FORMAT_RGBA) {
-                vid->process_frame = bgr24_to_bgr24;
-            }
-            break;
+        switch (input_format) {
+            case V4L2_PIX_FMT_BGR24:
+                switch (output_format) {
+                    case AR_PIXEL_FORMAT_RGB:
+                        vid->process_frame = bgr_to_bgr;
+                        break;
+                    default:
+                        // Ignore other output pixel formats.
+                        break;
+                }
+                break;
 
-        case V4L2_PIX_FMT_YUYV:
-            if (vid->format == AR_PIXEL_FORMAT_BGR) {
-                vid->process_frame = yuyv_to_bgr;
-            } else if (vid->format == AR_PIXEL_FORMAT_BGRA) {
-                vid->process_frame = yuyv_to_bgra;
-            }
-            break;
+            case V4L2_PIX_FMT_YUYV:
+                switch (output_format) {
+                    case AR_PIXEL_FORMAT_BGR:
+                        vid->process_frame = yuyv_to_bgr;
+                        break;
+                    case AR_PIXEL_FORMAT_RGBA:
+                        vid->process_frame = yuyv_to_bgra;
+                        break;
+                    default:
+                        // Ignore other output pixel formats.
+                        break;
+                }
+                break;
 
-        case V4L2_PIX_FMT_MJPEG:
-            if (vid->format == AR_PIXEL_FORMAT_BGR) {
-                init_jpeg();
-                vid->process_frame = mjpeg_to_brg;
-            }
-            break;
-    }
+            case V4L2_PIX_FMT_MJPEG:
+                switch (output_format) {
+                    case AR_PIXEL_FORMAT_BGR:
+                        init_jpeg();
+                        vid->process_frame = mjpeg_to_brg;
+                        break;
+                    default:
+                        // Ignore other output pixel formats.
+                        break;
+                }
+                break;
+        }
 
-    if (vid->process_frame == NULL) {
-        close(vid->fd);
-        free(vid);
-        ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
-               "internal pixel format.\n");
-        return NULL;
+        if (vid->process_frame == NULL) {
+            close(vid->fd);
+            free(vid);
+            ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
+                   "internal pixel format.\n");
+            return NULL;
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -728,7 +771,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
 
     arMalloc(vid->videoBuffer,
              ARUint8,
-             vid->width * vid->height * vid->bytes_per_pixel);
+             vid->width * vid->height * arUtilGetPixelSize(vid->format));
 
     // Setup memory mapping
     memset(&req, 0, sizeof(req));
