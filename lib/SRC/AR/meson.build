@@ -54,4 +54,5 @@ ar_files = ar_labeling_sub_files + files(
 ar_lib = static_library(
     'AR', ar_files,
     include_directories : ar_includes,
+    override_options : 'unity=on',
 )

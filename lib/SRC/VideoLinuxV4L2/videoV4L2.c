@@ -321,7 +321,7 @@ static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
 
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, buffer, video->width * video->height * video->bytes_per_pixel);
+    jpeg_mem_src(&cinfo, buffer, get_size(video));
 
     int rc = jpeg_read_header(&cinfo, TRUE);
     if (rc != 1) {

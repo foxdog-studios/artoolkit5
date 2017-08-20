@@ -44,8 +44,7 @@
 #include <AR2/template.h>
 #include <AR2/tracking.h>
 #include <AR2/util.h>
-
-static char *get_buff( char *buf, int n, FILE *fp );
+#include "private.h"
 
 AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPattHandle *pattHandle )
 {
@@ -73,7 +72,7 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
     arMalloc(surfaceSet, AR2SurfaceSetT, 1);
 
     if( readMode ) {
-        if( get_buff(buf, 256, fp) == NULL ) {
+        if( ar2_read_content_line(buf, 256, fp) == NULL ) {
             fclose(fp);
             free(surfaceSet);
             return (NULL);
@@ -100,7 +99,7 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
     for( i = 0; i < surfaceSet->num; i++ ) {
         ARLOGi("\n### Surface No.%d ###\n", i+1);
         if( readMode ) {
-            if( get_buff(buf, 256, fp) == NULL ) break;
+            if( ar2_read_content_line(buf, 256, fp) == NULL ) break;
             if( sscanf(buf, "%s", name) != 1 ) break;
             ar2UtilRemoveExt( name );
         }
@@ -146,7 +145,7 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
         }
 
         if (readMode) {
-            if( get_buff(buf, 256, fp) == NULL ) break;
+            if( ar2_read_content_line(buf, 256, fp) == NULL ) break;
             if( sscanf(buf, "%f %f %f %f",
                        &(surfaceSet->surface[i].trans[0][0]),
                        &(surfaceSet->surface[i].trans[0][1]),
@@ -156,7 +155,7 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
                 fclose(fp);
                 exit(0);
             }
-            if( get_buff(buf, 256, fp) == NULL ) break;
+            if( ar2_read_content_line(buf, 256, fp) == NULL ) break;
             if( sscanf(buf, "%f %f %f %f",
                        &(surfaceSet->surface[i].trans[1][0]),
                        &(surfaceSet->surface[i].trans[1][1]),
@@ -166,7 +165,7 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
                 fclose(fp);
                 exit(0);
             }
-            if( get_buff(buf, 256, fp) == NULL ) break;
+            if( ar2_read_content_line(buf, 256, fp) == NULL ) break;
             if( sscanf(buf, "%f %f %f %f",
                        &(surfaceSet->surface[i].trans[2][0]),
                        &(surfaceSet->surface[i].trans[2][1]),
@@ -195,17 +194,6 @@ AR2SurfaceSetT *ar2ReadSurfaceSet( const char *filename, const char *ext, ARPatt
     if (i < surfaceSet->num) exit(0);
 
     return surfaceSet;
-}
-
-static char *get_buff( char *buf, int n, FILE *fp )
-{
-    char *ret;
-
-    for(;;) {
-        ret = fgets( buf, n, fp );
-        if( ret == NULL ) return(NULL);
-        if( buf[0] != '\n' && buf[0] != '#' ) return(ret);
-    }
 }
 
 int ar2FreeSurfaceSet( AR2SurfaceSetT **surfaceSet )

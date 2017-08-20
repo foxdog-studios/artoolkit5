@@ -273,9 +273,11 @@ int ar2GetBestMatching( ARUint8 *img, ARUint8 *mfImage, int xsize, int ysize, AR
     return ret;
 }
 
-static int ar2GetBestMatchingSubFine( ARUint8 *img, int xsize, int ysize, AR_PIXEL_FORMAT pixFormat,
-                                      AR2TemplateT *mtemp, int sx, int sy, int *val)
-{
+static int ar2GetBestMatchingSubFine(ARUint8 *img, int xsize,
+                                     __attribute__((unused)) int ysize,
+                                     AR_PIXEL_FORMAT pixFormat,
+                                     AR2TemplateT *mtemp, int sx, int sy,
+                                     int *val) {
     ARUint16            *p1;
     ARUint8             *p2;
     int                  w;
@@ -406,9 +408,12 @@ static int ar2GetBestMatchingSubFine( ARUint8 *img, int xsize, int ysize, AR_PIX
 }
 
 #if 1
-static int ar2GetBestMatchingSubFineOpt( ARUint8 *img, int xsize, int ysize, int sx1, int sy1, AR2TemplateT *mtemp,
-                                         ARUint32 *subImage1, ARUint32 *subImage2, int sx2, int sy2, int *val)
-{
+static int ar2GetBestMatchingSubFineOpt(ARUint8 *img, int xsize,
+                                        __attribute__((unused)) int ysize,
+                                        int sx1, int sy1, AR2TemplateT *mtemp,
+                                        ARUint32 *subImage1,
+                                        ARUint32 *subImage2, int sx2, int sy2,
+                                        int *val) {
     ARUint16            *p1;
     ARUint8             *p2, *p3;
     int                  sum1, sum2, sum3;

@@ -158,16 +158,18 @@ int ar2ScreenCoord2MarkerCoord( const ARParamLT *cparamLT, const float  trans[3]
     return 0;
 }
 
-int ar2MarkerCoord2ImageCoord( const int xsize, const int ysize, const float dpi, const float  mx, const float  my, float  *ix, float  *iy )
-{
+int ar2MarkerCoord2ImageCoord(__attribute__((unused)) const int xsize,
+                              const int ysize, const float dpi, const float mx,
+                              const float my, float *ix, float *iy) {
     *ix = mx * dpi / 25.4f;
     *iy = ysize - my * dpi / 25.4f;
 
     return 0;
 }
 
-int ar2ImageCoord2MarkerCoord2( const int xsize, const int ysize, const float dpi, const float  ix, const float  iy, float  *mx, float  *my )
-{
+int ar2ImageCoord2MarkerCoord2(__attribute__((unused)) const int xsize,
+                               const int ysize, const float dpi, const float ix,
+                               const float iy, float *mx, float *my) {
     *mx = ix * 25.4f / dpi;
     *my = (ysize - iy) * 25.4f / dpi;
 

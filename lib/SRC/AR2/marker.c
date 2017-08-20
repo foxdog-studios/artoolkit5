@@ -40,8 +40,7 @@
 #include <stdlib.h>
 #include <AR2/marker.h>
 #include <AR2/util.h>
-
-static char *get_buff( char *buf, int n, FILE *fp );
+#include "private.h"
 
 int ar2FreeMarkerSet( AR2MarkerSetT **markerSet )
 {
@@ -68,7 +67,7 @@ AR2MarkerSetT *ar2ReadMarkerSet( char *filename, char *ext, ARPattHandle  *pattH
 
     arMalloc( markerSet, AR2MarkerSetT, 1 );
 
-    if( get_buff(buf, 256, fp) == NULL ) {
+    if( ar2_read_content_line(buf, 256, fp) == NULL ) {
         free( markerSet );
         markerSet = NULL;
         goto done;
@@ -87,7 +86,7 @@ AR2MarkerSetT *ar2ReadMarkerSet( char *filename, char *ext, ARPattHandle  *pattH
     arMalloc( markerSet->marker, AR2MarkerT, markerSet->num );
 
     for( i = 0; i < markerSet->num; i++ ) {
-        if( get_buff(buf, 256, fp) == NULL ) {
+        if( ar2_read_content_line(buf, 256, fp) == NULL ) {
             free( markerSet->marker );
             free( markerSet );
             markerSet = NULL;
@@ -107,7 +106,7 @@ AR2MarkerSetT *ar2ReadMarkerSet( char *filename, char *ext, ARPattHandle  *pattH
             goto done;
         }
 
-        if( get_buff(buf, 256, fp) == NULL ) {
+        if( ar2_read_content_line(buf, 256, fp) == NULL ) {
             free( markerSet->marker );
             free( markerSet );
             markerSet = NULL;
@@ -121,7 +120,7 @@ AR2MarkerSetT *ar2ReadMarkerSet( char *filename, char *ext, ARPattHandle  *pattH
         }
 
         for( j = 0; j < 3; j++ ) {
-            if( get_buff(buf, 256, fp) == NULL ) {
+            if( ar2_read_content_line(buf, 256, fp) == NULL ) {
                 free( markerSet->marker );
                 free( markerSet );
                 markerSet = NULL;
@@ -144,15 +143,3 @@ done:
     fclose(fp);
     return markerSet;
 }
-
-static char *get_buff( char *buf, int n, FILE *fp )
-{
-    char *ret;
-
-    for(;;) {
-        ret = fgets( buf, n, fp );
-        if( ret == NULL ) return(NULL);
-        if( buf[0] != '\n' && buf[0] != '#' ) return(ret);
-    }
-}
-

@@ -38,8 +38,22 @@
 #include <AR/ar.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <AR2/util.h>
+#include "private.h"
+
+char *ar2_read_content_line(char *const buffer, int const n, FILE *const fp) {
+    char *ret;
+
+    for (;;) {
+        ret = fgets(buffer, n, fp);
+
+        if (ret == NULL)
+            return NULL;
+
+        if (buffer[0] != '\n' && buffer[0] != '#')
+            return ret;
+    }
+}
 
 int ar2UtilReplaceExt( char *filename, int n, char *ext )
 {
