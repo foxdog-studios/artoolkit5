@@ -329,43 +329,40 @@ static int yuyv_to_bgra(AR2VideoParamV4L2T const *const video) {
     return 0;
 }
 
-static struct jpeg_decompress_struct cinfo;
-static struct jpeg_error_mgr jerr;
-
-static void init_jpeg() {
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_decompress(&cinfo);
-}
-
-static void deinit_jpeg() {
-    jpeg_destroy_decompress(&cinfo);
-}
+typedef struct {
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+} mjpeg_process_data;
 
 static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
-    jpeg_mem_src(&cinfo, get_src_buffer(video), get_size(video));
+    mjpeg_process_data *const pd = (mjpeg_process_data *)video->process_data;
+    struct jpeg_decompress_struct *const cinfo = &pd->cinfo;
 
-    int rc = jpeg_read_header(&cinfo, TRUE);
+    jpeg_mem_src(cinfo, get_src_buffer(video), get_size(video));
+
+    int rc = jpeg_read_header(cinfo, TRUE);
     if (rc != 1) {
         ARLOGe("Bad JPEG\n");
         return -1;
     }
 
-    cinfo.out_color_space = JCS_EXT_BGR;
-    jpeg_start_decompress(&cinfo);
+    cinfo->out_color_space = JCS_EXT_BGR;
+    jpeg_start_decompress(cinfo);
 
-    int width = cinfo.output_width;
-    int pixelSize = cinfo.output_components;
+    int width = cinfo->output_width;
+    int pixelSize = cinfo->output_components;
 
-    while (cinfo.output_scanline < cinfo.output_height) {
+    while (cinfo->output_scanline < cinfo->output_height) {
         unsigned char *buffer_array[1];
         buffer_array[0] =
-            video->videoBuffer + cinfo.output_scanline * (width * pixelSize);
-        jpeg_read_scanlines(&cinfo, buffer_array, 1);
+            video->videoBuffer + cinfo->output_scanline * (width * pixelSize);
+        jpeg_read_scanlines(cinfo, buffer_array, 1);
     }
 
-    jpeg_finish_decompress(&cinfo);
+    jpeg_finish_decompress(cinfo);
     return 0;
 }
+
 /*-------------------------------------------*/
 
 int ar2VideoDispOptionV4L2( void )
@@ -414,21 +411,23 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     arMalloc(vid, AR2VideoParamV4L2T, 1);
     strcpy(vid->dev, AR_VIDEO_V4L2_DEFAULT_DEVICE);
 
-    vid->width       = AR_VIDEO_V4L2_DEFAULT_WIDTH;
-    vid->height      = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
-    vid->channel     = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
-    vid->mode        = AR_VIDEO_V4L2_DEFAULT_MODE;
-    vid->format      = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
-    vid->palette     = V4L2_PIX_FMT_YUYV;
-    vid->contrast    = -1;
-    vid->brightness  = -1;
-    vid->saturation  = -1;
-    vid->hue         = -1;
-    vid->gamma       = -1;
-    vid->exposure    = -1;
-    vid->gain        = 1;
-    vid->debug       = 0;
-    vid->videoBuffer = NULL;
+    vid->width        = AR_VIDEO_V4L2_DEFAULT_WIDTH;
+    vid->height       = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
+    vid->channel      = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
+    vid->mode         = AR_VIDEO_V4L2_DEFAULT_MODE;
+    vid->format       = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
+    vid->palette      = V4L2_PIX_FMT_YUYV;
+    vid->contrast     = -1;
+    vid->brightness   = -1;
+    vid->saturation   = -1;
+    vid->hue          = -1;
+    vid->gamma        = -1;
+    vid->exposure     = -1;
+    vid->gain         = 1;
+    vid->debug        = 0;
+    vid->process      = NULL;
+    vid->process_data = NULL;
+    vid->videoBuffer  = NULL;
 
     a = config;
     if( a != NULL) {
@@ -444,28 +443,28 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
                 if (sscanf(&line[5], "%255s", vid->dev) != 1 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-channel=", 9 ) == 0 ) {
                 if( sscanf( &line[9], "%d", &vid->channel ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-width=", 7 ) == 0 ) {
                 if( sscanf( &line[7], "%d", &vid->width ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-height=", 8 ) == 0 ) {
                 if( sscanf( &line[8], "%d", &vid->height ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-palette=", 9 ) == 0 ) {
@@ -503,49 +502,49 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
                 if( sscanf( &line[10], "%d", &vid->contrast ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-brightness=", 12 ) == 0 ) {
                 if( sscanf( &line[12], "%d", &vid->brightness ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-saturation=", 12 ) == 0 ) {
                 if( sscanf( &line[12], "%d", &vid->saturation ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-hue=", 5 ) == 0 ) {
                 if( sscanf( &line[5], "%d", &vid->hue ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-gamma=", 7 ) == 0 ) {
                 if( sscanf( &line[7], "%d", &vid->gamma ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-exposure=", 10 ) == 0 ) {
                 if( sscanf( &line[10], "%d", &vid->exposure ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-gain=", 6 ) == 0 ) {
                 if( sscanf( &line[6], "%d", &vid->gain ) == 0 ) {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strncmp( a, "-mode=", 6 ) == 0 ) {
@@ -555,7 +554,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
                 else {
                     ar2VideoDispOptionV4L2();
                     free( vid );
-                    return 0;
+                    return NULL;
                 }
             }
             else if( strcmp( line, "-debug" ) == 0 ) {
@@ -567,7 +566,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
                 ARLOGe("Error: unrecognised configuration option '%s'.\n", a);
                 ar2VideoDispOptionV4L2();
                 free( vid );
-                return 0;
+                return NULL;
             }
 
             while( *a != ' ' && *a != '\t' && *a != '\0') a++;
@@ -651,13 +650,12 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     {
         int const input_format = vid->palette;
         AR_PIXEL_FORMAT const output_format = vid->format;
-        vid->process_frame = NULL;
 
         switch (input_format) {
             case V4L2_PIX_FMT_BGR24:
                 switch (output_format) {
                     case AR_PIXEL_FORMAT_RGB:
-                        vid->process_frame = bgr_to_bgr;
+                        vid->process = bgr_to_bgr;
                         break;
                     default:
                         // Ignore other output pixel formats.
@@ -668,10 +666,10 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
             case V4L2_PIX_FMT_YUYV:
                 switch (output_format) {
                     case AR_PIXEL_FORMAT_BGR:
-                        vid->process_frame = yuyv_to_bgr;
+                        vid->process = yuyv_to_bgr;
                         break;
                     case AR_PIXEL_FORMAT_RGBA:
-                        vid->process_frame = yuyv_to_bgra;
+                        vid->process = yuyv_to_bgra;
                         break;
                     default:
                         // Ignore other output pixel formats.
@@ -682,9 +680,26 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
             case V4L2_PIX_FMT_MJPEG:
                 switch (output_format) {
                     case AR_PIXEL_FORMAT_BGR:
-                        init_jpeg();
-                        vid->process_frame = mjpeg_to_brg;
+                        vid->process = mjpeg_to_brg;
+
+                        mjpeg_process_data *const process_data =
+                            (mjpeg_process_data *)malloc(
+                                sizeof(mjpeg_process_data));
+
+                        if (process_data == NULL) {
+                            close(vid->fd);
+                            free(vid);
+                            ARLOGe(
+                                "Could not allocate MJPEG processing data.\n");
+                            return NULL;
+                        }
+
+                        process_data->cinfo.err =
+                            jpeg_std_error(&process_data->jerr);
+                        jpeg_create_decompress(&process_data->cinfo);
+                        vid->process_data = process_data;
                         break;
+
                     default:
                         // Ignore other output pixel formats.
                         break;
@@ -692,7 +707,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
                 break;
         }
 
-        if (vid->process_frame == NULL) {
+        if (vid->process == NULL) {
             close(vid->fd);
             free(vid);
             ARLOGe("ar2VideoOpen: Cannot convert video pixel format to "
@@ -709,27 +724,29 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     ipt.std = vid->mode;
 
     if (xioctl(vid->fd,VIDIOC_ENUMINPUT,&ipt) < 0) {
-        ARLOGe("arVideoOpen: Error querying input device type\n");
         close(vid->fd);
-        free( vid );
-        return 0;
+        free(vid->process_data);
+        free(vid);
+        ARLOGe("arVideoOpen: Error querying input device type\n");
+        return NULL;
     }
 
     if (vid->debug) {
         if (ipt.type == V4L2_INPUT_TYPE_TUNER) {
-            ARLOGe("  Type: Tuner\n");
+            ARLOGi("  Type: Tuner\n");
         }
         if (ipt.type == V4L2_INPUT_TYPE_CAMERA) {
-            ARLOGe("  Type: Camera\n");
+            ARLOGi("  Type: Camera\n");
         }
     }
 
     // Set channel
     if (xioctl(vid->fd, VIDIOC_S_INPUT, &ipt)) {
-        ARLOGe("arVideoOpen: Error setting video input\n");
         close(vid->fd);
-        free( vid );
-        return 0;
+        free(vid->process_data);
+        free(vid);
+        ARLOGe("arVideoOpen: Error setting video input\n");
+        return NULL;
     }
 
 
@@ -747,25 +764,25 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         int value;
 
         if (!getControl(vid->fd, V4L2_CID_BRIGHTNESS, &value)) {
-            ARLOGe("Brightness: %d\n", value);
+            ARLOGi("Brightness: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_CONTRAST, &value)) {
-            ARLOGe("Contrast: %d\n", value);
+            ARLOGi("Contrast: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_SATURATION, &value)) {
-            ARLOGe("Saturation: %d\n", value);
+            ARLOGi("Saturation: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_HUE, &value)) {
-            ARLOGe("Hue: %d\n", value);
+            ARLOGi("Hue: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_GAMMA, &value)) {
-            ARLOGe("Gamma: %d\n", value);
+            ARLOGi("Gamma: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_EXPOSURE, &value)) {
-            ARLOGe("Exposure: %d\n", value);
+            ARLOGi("Exposure: %d\n", value);
         }
         if (!getControl(vid->fd, V4L2_CID_GAIN, &value)) {
-            ARLOGe("Gain: %d\n", value);
+            ARLOGi("Gain: %d\n", value);
         }
     }
 
@@ -780,31 +797,32 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     req.memory = V4L2_MEMORY_MMAP;
 
     if (xioctl(vid->fd, VIDIOC_REQBUFS, &req)) {
-        ARLOGe("Error calling VIDIOC_REQBUFS\n");
         close(vid->fd);
-        if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
-        free( vid );
-        return 0;
+        free(vid->videoBuffer);
+        free(vid->process_data);
+        free(vid);
+        ARLOGe("Error calling VIDIOC_REQBUFS\n");
+        return NULL;
     }
 
     if (req.count < 2) {
-        ARLOGe("this device can not be supported by libARvideo.\n");
-        ARLOGe("(req.count < 2)\n");
         close(vid->fd);
-        if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
-        free( vid );
-
-        return 0;
+        free(vid->videoBuffer);
+        free(vid->process_data);
+        free(vid);
+        ARLOGe("Video device is not supported by libARvideo. (req.count < 2)\n");
+        return NULL;
     }
 
     vid->buffers = (struct buffer_ar_v4l2 *)calloc(req.count , sizeof(*vid->buffers));
 
-    if (vid->buffers == NULL ) {
+    if (vid->buffers == NULL) {
         ARLOGe("ar2VideoOpen: Error allocating buffer memory\n");
         close(vid->fd);
-        if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
-        free( vid );
-        return 0;
+        free(vid->videoBuffer);
+        free(vid->process_data);
+        free(vid);
+        return NULL;
     }
 
     for (vid->n_buffers = 0; (size_t)vid->n_buffers < req.count; ++vid->n_buffers) {
@@ -814,12 +832,14 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         buf.memory      = V4L2_MEMORY_MMAP;
         buf.index       = vid->n_buffers;
 
-        if (xioctl (vid->fd, VIDIOC_QUERYBUF, &buf)) {
-            ARLOGe("error VIDIOC_QUERYBUF\n");
+        if (xioctl(vid->fd, VIDIOC_QUERYBUF, &buf)) {
             close(vid->fd);
-            if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
-            free( vid );
-            return 0;
+            free(vid->buffers);
+            free(vid->videoBuffer);
+            free(vid->process_data);
+            free(vid);
+            ARLOGe("error VIDIOC_QUERYBUF\n");
+            return NULL;
         }
 
         vid->buffers[vid->n_buffers].length = buf.length;
@@ -831,31 +851,28 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
               vid->fd, buf.m.offset);
 
         if (MAP_FAILED == vid->buffers[vid->n_buffers].start) {
-            ARLOGe("Error mmap\n");
             close(vid->fd);
-            if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
-            free( vid );
-            return 0;
+            free(vid->buffers);
+            free(vid->videoBuffer);
+            free(vid->process_data);
+            free(vid);
+            ARLOGe("Error mmap\n");
+            return NULL;
         }
     }
 
     vid->video_cont_num = -1;
-
     return vid;
 }
 
-int ar2VideoCloseV4L2( AR2VideoParamV4L2T *vid )
-{
-    if (vid->video_cont_num >= 0){
-        ar2VideoCapStopV4L2( vid );
-    }
-
-    if (vid->palette == V4L2_PIX_FMT_MJPEG) {
-        deinit_jpeg();
+int ar2VideoCloseV4L2(AR2VideoParamV4L2T *const vid) {
+    if (vid->video_cont_num >= 0) {
+        ar2VideoCapStopV4L2(vid);
     }
 
     close(vid->fd);
     free(vid->videoBuffer);
+    free(vid->process_data);
     free(vid);
 
     return 0;
@@ -970,7 +987,7 @@ AR2VideoBufferT *ar2VideoGetImageV4L2(AR2VideoParamV4L2T *const vid) {
 
     vid->video_cont_num = buf.index;
 
-    if (vid->process_frame(vid) != 0) {
+    if (vid->process(vid) != 0) {
         ARLOGe("Could not convert image to ARToolkit pixel format.\n");
         return out;
     }

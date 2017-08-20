@@ -103,11 +103,12 @@ struct AR2VideoParamV4L2T {
     int                    video_cont_num;
     ARUint8                *videoBuffer;
 
-    int (*process_frame)(AR2VideoParamV4L2T const *video);
+    int (*process)(AR2VideoParamV4L2T const *video);
+    void *process_data;
 
     pthread_t              capture;
     AR2VideoBufferV4L2T    buffer;
-    
+
     struct buffer_ar_v4l2 *buffers;
     int                    n_buffers;
 };
