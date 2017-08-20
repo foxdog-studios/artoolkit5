@@ -34,7 +34,7 @@
  *  Author(s): Hirokazu Kato, Philip Lamb
  *
  */
-/* 
+/*
  *   author: Hirokazu Kato ( kato@sys.im.hiroshima-cu.ac.jp )
  *
  *   Revision: 6.0   Date: 2003/09/29
@@ -48,7 +48,7 @@
 static const char *ar2VideoGetConfig(const char *config_in)
 {
     const char *config = NULL;
-    
+
     /* If no config string is supplied, we should use the environment variable, otherwise set a sane default */
     if (!config_in || !(config_in[0])) {
         /* None supplied, lets see if the user supplied one from the shell */
@@ -68,7 +68,7 @@ static const char *ar2VideoGetConfig(const char *config_in)
         config = config_in;
         ARLOGi("Using supplied video config \"%s\".\n", config_in);
     }
-    
+
     return config;
 }
 
@@ -77,19 +77,21 @@ static int ar2VideoGetDeviceWithConfig(const char *config, const char **configSt
     int                        device;
     const char                *a;
     char                       b[256];
-    
+
     device = arVideoGetDefaultDevice();
-    
+
     if (configStringFollowingDevice_p) *configStringFollowingDevice_p = NULL;
-    
+
     a = config;
     if (a) {
         for(;;) {
             while( *a == ' ' || *a == '\t' ) a++;
             if( *a == '\0' ) break;
-            
-            if( sscanf(a, "%s", b) == 0 ) break;
-            
+
+            if (sscanf(a, "%255s", b) != 1) {
+                break;
+            }
+
             if( strcmp( b, "-device=Dummy" ) == 0 )             {
                 device = AR_VIDEO_DEVICE_DUMMY;
             }
@@ -143,11 +145,11 @@ static int ar2VideoGetDeviceWithConfig(const char *config, const char **configSt
             else if( strcmp( b, "-device=WinMC" ) == 0 )    {
                 device = AR_VIDEO_DEVICE_WINDOWS_MEDIA_CAPTURE;
             }
-            
+
             while( *a != ' ' && *a != '\t' && *a != '\0') a++;
         }
     }
-    
+
     if (configStringFollowingDevice_p) {
         if (*configStringFollowingDevice_p) {
             while( **configStringFollowingDevice_p != ' ' && **configStringFollowingDevice_p != '\t' && **configStringFollowingDevice_p != '\0') (*configStringFollowingDevice_p)++;
@@ -156,7 +158,7 @@ static int ar2VideoGetDeviceWithConfig(const char *config, const char **configSt
             *configStringFollowingDevice_p = config;
         }
     }
-    
+
     return (device);
 }
 
@@ -200,7 +202,7 @@ ARVideoSourceInfoListT *ar2VideoCreateSourceInfoList(const char *config_in)
 #endif
 #ifdef AR_INPUT_WINDOWS_DIRECTSHOW
     if (device == AR_VIDEO_DEVICE_WINDOWS_DIRECTSHOW) {
-		return ar2VideoCreateSourceInfoListWinDS(config_in);
+                return ar2VideoCreateSourceInfoListWinDS(config_in);
     }
 #endif
 #ifdef AR_INPUT_WINDOWS_DSVIDEOLIB
@@ -254,16 +256,16 @@ ARVideoSourceInfoListT *ar2VideoCreateSourceInfoList(const char *config_in)
 void ar2VideoDeleteSourceInfoList(ARVideoSourceInfoListT **p)
 {
     int i;
-    
+
     if (!p || !*p) return;
-    
+
     for (i = 0; i < (*p)->count; i++) {
         free((*p)->info[i].name);
         free((*p)->info[i].UID);
     }
     free((*p)->info);
     free(*p);
-    
+
     *p = NULL;
 }
 
@@ -398,28 +400,28 @@ AR2VideoParamT *ar2VideoOpen( const char *config_in )
         ARLOGe("ar2VideoOpen: Error: device \"WinMC\" not supported on this build/architecture/system.\n");
 #endif
     }
-    
+
     free( vid );
     return NULL;
 }
 
-AR2VideoParamT *ar2VideoOpenAsync(const char *config_in, void (*callback)(void *), void *userdata)
+AR2VideoParamT *ar2VideoOpenAsync(const char *config_in, __attribute__((unused)) void (*callback)(void *), __attribute__((unused)) void *userdata)
 {
     AR2VideoParamT            *vid;
     const char                *config;
     // Some devices won't understand the "-device=" option, so we need to pass
     // only the portion following that option to them.
     const char                *configStringFollowingDevice = NULL;
-    
+
     arMallocClear( vid, AR2VideoParamT, 1 );
     config = ar2VideoGetConfig(config_in);
     vid->deviceType = ar2VideoGetDeviceWithConfig(config, &configStringFollowingDevice);
-    
+
     if( vid->deviceType == AR_VIDEO_DEVICE_IPHONE ) {
 #ifdef AR_INPUT_IPHONE
         if (callback) vid->device.iPhone = ar2VideoOpenAsynciPhone(config, callback, userdata);
         else vid->device.iPhone = NULL;
-        
+
         if (vid->device.iPhone != NULL) return vid;
 #else
         ARLOGe("ar2VideoOpen: Error: device \"iPhone\" not supported on this build/architecture/system.\n");
@@ -433,7 +435,7 @@ AR2VideoParamT *ar2VideoOpenAsync(const char *config_in, void (*callback)(void *
 int ar2VideoClose( AR2VideoParamT *vid )
 {
     int ret;
-    
+
     if (!vid) return -1;
     if (vid->lumaInfo) {
         if (arVideoLumaFinal(&(vid->lumaInfo)) < 0) {
@@ -528,7 +530,7 @@ int ar2VideoClose( AR2VideoParamT *vid )
 #endif
     free (vid);
     return (ret);
-} 
+}
 
 int ar2VideoDispOption( AR2VideoParamT *vid )
 {
@@ -908,7 +910,7 @@ AR_PIXEL_FORMAT ar2VideoGetPixelFormat( AR2VideoParamT *vid )
 AR2VideoBufferT *ar2VideoGetImage( AR2VideoParamT *vid )
 {
     AR2VideoBufferT *ret = NULL;
-    
+
     if (!vid) return (NULL);
 #ifdef AR_INPUT_DUMMY
     if( vid->deviceType == AR_VIDEO_DEVICE_DUMMY ) {
@@ -1125,7 +1127,7 @@ int ar2VideoCapStart( AR2VideoParamT *vid )
     return (-1);
 }
 
-int ar2VideoCapStartAsync (AR2VideoParamT *vid, AR_VIDEO_FRAME_READY_CALLBACK callback, void *userdata)
+int ar2VideoCapStartAsync (AR2VideoParamT *vid, __attribute__((unused)) AR_VIDEO_FRAME_READY_CALLBACK callback, __attribute__((unused)) void *userdata)
 {
     if (!vid) return -1;
 #ifdef AR_INPUT_ANDROID
@@ -1216,7 +1218,7 @@ int ar2VideoCapStop( AR2VideoParamT *vid )
 #ifdef AR_INPUT_ANDROID
     if( vid->deviceType == AR_VIDEO_DEVICE_ANDROID ) {
 #  if AR_VIDEO_ANDROID_ENABLE_NATIVE_CAMERA
-		return ar2VideoCapStopAndroid( vid->device.android );
+                return ar2VideoCapStopAndroid( vid->device.android );
 #  else
         return (-1); // NOT IMPLEMENTED.
 #  endif
@@ -1251,7 +1253,7 @@ int ar2VideoGetParami( AR2VideoParamT *vid, int paramName, int *value )
                 );
 #endif
     }
-    
+
     if (!vid) return -1;
 #ifdef AR_INPUT_DUMMY
     if( vid->deviceType == AR_VIDEO_DEVICE_DUMMY ) {
@@ -1614,9 +1616,9 @@ int ar2VideoSetParamd( AR2VideoParamT *vid, int paramName, double  value )
     return (-1);
 }
 
-
-int ar2VideoGetParams( AR2VideoParamT *vid, const int paramName, char **value )
-{
+int ar2VideoGetParams(AR2VideoParamT *vid,
+                      __attribute__((unused)) const int paramName,
+                      __attribute__((unused)) char **value) {
     if (!vid) return -1;
 #ifdef AR_INPUT_DUMMY
     if( vid->deviceType == AR_VIDEO_DEVICE_DUMMY ) {
@@ -1656,8 +1658,9 @@ int ar2VideoGetParams( AR2VideoParamT *vid, const int paramName, char **value )
     return (-1);
 }
 
-int ar2VideoSetParams( AR2VideoParamT *vid, const int paramName, const char  *value )
-{
+int ar2VideoSetParams(AR2VideoParamT *vid,
+                      __attribute__((unused)) const int paramName,
+                      __attribute__((unused)) const char *value) {
     if (!vid) return -1;
 #ifdef AR_INPUT_DUMMY
     if( vid->deviceType == AR_VIDEO_DEVICE_DUMMY ) {
@@ -1697,8 +1700,8 @@ int ar2VideoSetParams( AR2VideoParamT *vid, const int paramName, const char  *va
     return (-1);
 }
 
-int ar2VideoSaveParam( AR2VideoParamT *vid, char *filename )
-{
+int ar2VideoSaveParam(AR2VideoParamT *vid,
+                      __attribute__((unused)) char *filename) {
     if (!vid) return -1;
 #ifdef AR_INPUT_1394CAM
     if( vid->deviceType == AR_VIDEO_DEVICE_1394CAM ) {
@@ -1708,8 +1711,8 @@ int ar2VideoSaveParam( AR2VideoParamT *vid, char *filename )
     return (-1);
 }
 
-int ar2VideoLoadParam( AR2VideoParamT *vid, char *filename )
-{
+int ar2VideoLoadParam(AR2VideoParamT *vid,
+                      __attribute__((unused)) char *filename) {
     if (!vid) return -1;
 #ifdef AR_INPUT_1394CAM
     if( vid->deviceType == AR_VIDEO_DEVICE_1394CAM ) {
@@ -1719,8 +1722,9 @@ int ar2VideoLoadParam( AR2VideoParamT *vid, char *filename )
     return (-1);
 }
 
-int ar2VideoSetBufferSize(AR2VideoParamT *vid, const int width, const int height)
-{
+int ar2VideoSetBufferSize(AR2VideoParamT *vid,
+                          __attribute__((unused)) const int width,
+                          __attribute__((unused)) const int height) {
     if (!vid) return -1;
 #ifdef AR_INPUT_DUMMY
     if( vid->deviceType == AR_VIDEO_DEVICE_DUMMY ) {
@@ -1745,7 +1749,7 @@ int ar2VideoSetBufferSize(AR2VideoParamT *vid, const int width, const int height
     return (-1);
 }
 
-int ar2VideoGetBufferSize(AR2VideoParamT *vid, int *width, int *height)
+int ar2VideoGetBufferSize(AR2VideoParamT *vid, __attribute__((unused)) int *width, __attribute__((unused)) int *height)
 {
     if (!vid) return -1;
 #ifdef AR_INPUT_DUMMY
@@ -1771,8 +1775,8 @@ int ar2VideoGetBufferSize(AR2VideoParamT *vid, int *width, int *height)
     return (-1);
 }
 
-int ar2VideoGetCParam(AR2VideoParamT *vid, ARParam *cparam)
-{
+int ar2VideoGetCParam(AR2VideoParamT *vid,
+                      __attribute__((unused)) ARParam *cparam) {
     if (!vid) return -1;
 #ifdef AR_INPUT_IPHONE
     if( vid->deviceType == AR_VIDEO_DEVICE_IPHONE ) {
@@ -1782,7 +1786,7 @@ int ar2VideoGetCParam(AR2VideoParamT *vid, ARParam *cparam)
     return (-1);
 }
 
-int ar2VideoGetCParamAsync(AR2VideoParamT *vid, void (*callback)(const ARParam *, void *), void *userdata)
+int ar2VideoGetCParamAsync(AR2VideoParamT *vid, __attribute__((unused)) void (*callback)(const ARParam *, void *), __attribute__((unused)) void *userdata)
 {
     if (!vid) return -1;
 #ifdef AR_INPUT_IPHONE
@@ -1797,4 +1801,3 @@ int ar2VideoGetCParamAsync(AR2VideoParamT *vid, void (*callback)(const ARParam *
 #endif
     return (-1);
 }
-
