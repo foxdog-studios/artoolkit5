@@ -53,21 +53,21 @@
 int arMatrixTrans(ARMat *dest, ARMat *source)
 {
 #if 0
-	int r, c;
+        int r, c;
 
-	if(dest->row != source->clm || dest->clm != source->row) return -1;
+        if(dest->row != source->clm || dest->clm != source->row) return -1;
 
-	for(r = 0; r < dest->row; r++) {
-		for(c = 0; c < dest->clm; c++) {
-			ARELEM0(dest, r, c) = ARELEM0(source, c, r);
-		}
-	}
+        for(r = 0; r < dest->row; r++) {
+                for(c = 0; c < dest->clm; c++) {
+                        ARELEM0(dest, r, c) = ARELEM0(source, c, r);
+                }
+        }
 #else
     int      r, c;
     ARdouble   *p1, *p2;
-    
+
     if(dest->row != source->clm || dest->clm != source->row) return -1;
-    
+
     p2 = dest->m;
     for(r = 0; r < dest->row; r++) {
         p1 = &source->m[r];
@@ -78,28 +78,28 @@ int arMatrixTrans(ARMat *dest, ARMat *source)
     }
 #endif
 
-	return 0;
+        return 0;
 }
 
 #ifndef ARDOUBLE_IS_FLOAT
 int arMatrixTransf(ARMatf *dest, ARMatf *source)
 {
 #if 0
-	int r, c;
-    
-	if(dest->row != source->clm || dest->clm != source->row) return -1;
-    
-	for(r = 0; r < dest->row; r++) {
-		for(c = 0; c < dest->clm; c++) {
-			ARELEM0(dest, r, c) = ARELEM0(source, c, r);
-		}
-	}
+        int r, c;
+
+        if(dest->row != source->clm || dest->clm != source->row) return -1;
+
+        for(r = 0; r < dest->row; r++) {
+                for(c = 0; c < dest->clm; c++) {
+                        ARELEM0(dest, r, c) = ARELEM0(source, c, r);
+                }
+        }
 #else
     int      r, c;
     float   *p1, *p2;
-    
+
     if(dest->row != source->clm || dest->clm != source->row) return -1;
-    
+
     p2 = dest->m;
     for(r = 0; r < dest->row; r++) {
         p1 = &source->m[r];
@@ -109,7 +109,7 @@ int arMatrixTransf(ARMatf *dest, ARMatf *source)
         }
     }
 #endif
-    
-	return 0;
+
+        return 0;
 }
 #endif

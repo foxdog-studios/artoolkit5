@@ -51,6 +51,9 @@ ar_files = ar_labeling_sub_files + files(
     'vTridiag.c',
 )
 
+ar_c_args = ['-D_GNU_SOURCE']
+
 ar_lib = static_library('AR', ar_files,
+    c_args : ar_c_args,
     include_directories : ar_includes,
 )

@@ -58,7 +58,7 @@ ARPattHandle *arPattCreateHandle2(const int pattSize, const int patternCountMax)
 {
     ARPattHandle  *pattHandle;
     int            i, j;
-    
+
     if (pattSize < 16 || pattSize > AR_PATT_SIZE1_MAX || patternCountMax <= 0) return NULL;
 
     arMalloc( pattHandle, ARPattHandle, 1 );
@@ -67,7 +67,7 @@ ARPattHandle *arPattCreateHandle2(const int pattSize, const int patternCountMax)
     pattHandle->patt_num_max = patternCountMax;
     //pattHandle->pattRatio = AR_PATT_RATIO;
     pattHandle->pattSize = pattSize;
-    
+
     arMalloc(pattHandle->pattf, int, patternCountMax);
     arMalloc(pattHandle->patt, int *, patternCountMax*4)
     arMalloc(pattHandle->pattBW, int *, patternCountMax*4)
@@ -86,21 +86,21 @@ ARPattHandle *arPattCreateHandle2(const int pattSize, const int patternCountMax)
 
 int arPattDeleteHandle(ARPattHandle *pattHandle)
 {
-	int i, j;
-	
-	if (pattHandle == NULL) return (-1);
-	
+        int i, j;
+
+        if (pattHandle == NULL) return (-1);
+
     for (i = 0; i < pattHandle->patt_num_max; i++) {
-		if (pattHandle->pattf[i] != 0) arPattFree(pattHandle, i);
+                if (pattHandle->pattf[i] != 0) arPattFree(pattHandle, i);
         for (j = 0; j < 4; j++) {
             free(pattHandle->patt[i*4 + j]);
             free(pattHandle->pattBW[i*4 + j]);
         }
-	}
-	free(pattHandle);
-	pattHandle = NULL;
-	
-	return (0);
+        }
+        free(pattHandle);
+        pattHandle = NULL;
+
+        return (0);
 }
 
 /*

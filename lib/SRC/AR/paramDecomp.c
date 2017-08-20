@@ -62,14 +62,14 @@ static float dotf( const float a1, const float a2, const float a3,
 
 int  arParamDecomp( const ARParam *source, ARParam *icpara, ARdouble trans[3][4] )
 {
-	int i;
-	
-	if (source->dist_function_version < 1 || source->dist_function_version > AR_DIST_FUNCTION_VERSION_MAX) return (-1);
-	
-	icpara->dist_function_version = source->dist_function_version;
+        int i;
+
+        if (source->dist_function_version < 1 || source->dist_function_version > AR_DIST_FUNCTION_VERSION_MAX) return (-1);
+
+        icpara->dist_function_version = source->dist_function_version;
     icpara->xsize          = source->xsize;
     icpara->ysize          = source->ysize;
-	for (i = 0; i < arParamVersionInfo[source->dist_function_version - 1].dist_factor_num; i++) icpara->dist_factor[i] = source->dist_factor[i];
+        for (i = 0; i < arParamVersionInfo[source->dist_function_version - 1].dist_factor_num; i++) icpara->dist_factor[i] = source->dist_factor[i];
     return arParamDecompMat( source->mat, icpara->mat, trans );
 }
 
@@ -104,7 +104,7 @@ int  arParamDecompMat( const ARdouble source[3][4], ARdouble cpara[3][4], ARdoub
     trans[2][1] = Cpara[2][1] / cpara[2][2];
     trans[2][2] = Cpara[2][2] / cpara[2][2];
     trans[2][3] = Cpara[2][3] / cpara[2][2];
-	
+
     cpara[1][2] = dot( trans[2][0], trans[2][1], trans[2][2],
                        Cpara[1][0], Cpara[1][1], Cpara[1][2] );
     rem1 = Cpara[1][0] - cpara[1][2] * trans[2][0];
@@ -146,7 +146,7 @@ int  arParamDecompMatf( const ARdouble source[3][4], float cpara[3][4], float tr
     int       r, c;
     float     Cpara[3][4];
     float     rem1, rem2, rem3;
-    
+
     if( source[2][3] >= 0.0 ) {
         for( r = 0; r < 3; r++ ){
             for( c = 0; c < 4; c++ ){
@@ -161,7 +161,7 @@ int  arParamDecompMatf( const ARdouble source[3][4], float cpara[3][4], float tr
             }
         }
     }
-    
+
     for( r = 0; r < 3; r++ ){
         for( c = 0; c < 4; c++ ){
             cpara[r][c] = 0.0f;
@@ -172,7 +172,7 @@ int  arParamDecompMatf( const ARdouble source[3][4], float cpara[3][4], float tr
     trans[2][1] = Cpara[2][1] / cpara[2][2];
     trans[2][2] = Cpara[2][2] / cpara[2][2];
     trans[2][3] = Cpara[2][3] / cpara[2][2];
-	
+
     cpara[1][2] = dotf( trans[2][0], trans[2][1], trans[2][2],
                       Cpara[1][0], Cpara[1][1], Cpara[1][2] );
     rem1 = Cpara[1][0] - cpara[1][2] * trans[2][0];
@@ -182,7 +182,7 @@ int  arParamDecompMatf( const ARdouble source[3][4], float cpara[3][4], float tr
     trans[1][0] = rem1 / cpara[1][1];
     trans[1][1] = rem2 / cpara[1][1];
     trans[1][2] = rem3 / cpara[1][1];
-    
+
     cpara[0][2] = dotf( trans[2][0], trans[2][1], trans[2][2],
                       Cpara[0][0], Cpara[0][1], Cpara[0][2] );
     cpara[0][1] = dotf( trans[1][0], trans[1][1], trans[1][2],
@@ -194,17 +194,17 @@ int  arParamDecompMatf( const ARdouble source[3][4], float cpara[3][4], float tr
     trans[0][0] = rem1 / cpara[0][0];
     trans[0][1] = rem2 / cpara[0][0];
     trans[0][2] = rem3 / cpara[0][0];
-    
+
     trans[1][3] = (Cpara[1][3] - cpara[1][2]*trans[2][3]) / cpara[1][1];
     trans[0][3] = (Cpara[0][3] - cpara[0][1]*trans[1][3]
                    - cpara[0][2]*trans[2][3]) / cpara[0][0];
-    
+
     for( r = 0; r < 3; r++ ){
         for( c = 0; c < 3; c++ ){
             cpara[r][c] /= cpara[2][2];
         }
     }
-    
+
     return 0;
 }
 #endif
@@ -215,7 +215,7 @@ static ARdouble norm( const ARdouble a, const ARdouble b, const ARdouble c )
 }
 
 static ARdouble dot( const ARdouble a1, const ARdouble a2, const ARdouble a3,
-		   const ARdouble b1, const ARdouble b2, const ARdouble b3 )
+                   const ARdouble b1, const ARdouble b2, const ARdouble b3 )
 {
     return( a1 * b1 + a2 * b2 + a3 * b3 );
 }

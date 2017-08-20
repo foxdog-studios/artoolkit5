@@ -61,8 +61,8 @@ int arPattDetach(ARHandle *arHandle)
 {
     if (!arHandle) return (-1);
     if (!arHandle->pattHandle) return (-1);
-	
+
     arHandle->pattHandle = NULL;
-	
+
     return (0);
 }

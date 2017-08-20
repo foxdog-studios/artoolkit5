@@ -43,7 +43,7 @@
         optical tracking systems like ARToolKit. These functions implement a
         first-order low-pass filter for both the position and orientation
         components of the pose estimate transformation matrices.
- 
+
         Usage:<br>
         For each pose estimate which is to be filtered, an ARFilterTransMatInfo
         structure should be allocated by calling arFilterTransMatInit(). Samples
@@ -61,19 +61,19 @@
 extern "C" {
 #endif
 
-    
+
 typedef struct _ARFilterTransMatInfo ARFilterTransMatInfo;
 
 /*!
-    @defined 
+    @defined
     @abstract   Default sample rate (in Hertz).
     @discussion This value provides a default value for the
         sampleRate parameter in arFilterTransMatInit().
 */
 #define AR_FILTER_TRANS_MAT_SAMPLE_RATE_DEFAULT 30.0
-    
+
 /*!
-    @defined 
+    @defined
     @abstract   Default cutoff frequency (in Hertz).
     @discussion This value provides a default value for the
         cutoffFreq parameter in arFilterTransMatInit().
@@ -86,11 +86,11 @@ typedef struct _ARFilterTransMatInfo ARFilterTransMatInfo;
     @discussion
         In order to filter a pose estimate, this function should be called to setup
         filter data structures.
- 
+
         Each ARFilterTransMatInfo structure should be used only with a single transformation
         matrix. For example, if you have 5 pose estimates to filter, you would call this
         function 5 times, once for each pose, and keep the pose data and filter data paired.
- 
+
         The structure produced should be passed to other filter functions dealing with
         the same transformation matrix.
     @param      sampleRate This value partially determines the filter properties.
@@ -162,8 +162,8 @@ int arFilterTransMat(ARFilterTransMatInfo *ftmi, ARdouble m[3][4], const int res
     @param      ftmi Filter settings to dispose of.
 */
 void arFilterTransMatFinal(ARFilterTransMatInfo *ftmi);
-    
-    
+
+
 #ifdef __cplusplus
 }
 #endif

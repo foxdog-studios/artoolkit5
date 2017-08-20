@@ -57,32 +57,32 @@
 
 ARMat *arMatrixAllocMul(ARMat *a, ARMat *b)
 {
-	ARMat *dest;
+    ARMat *dest;
 
-	dest = arMatrixAlloc(a->row, b->clm);
-	if( dest == NULL ) return NULL;
+    dest = arMatrixAlloc(a->row, b->clm);
+    if( dest == NULL ) return NULL;
 
-	if( arMatrixMul(dest, a, b) < 0 ) {
-		arMatrixFree(dest);
-		return NULL;
-	}
+    if( arMatrixMul(dest, a, b) < 0 ) {
+        arMatrixFree(dest);
+        return NULL;
+    }
 
-	return dest;
+    return dest;
 }
 
 #ifndef ARDOUBLE_IS_FLOAT
 ARMatf *arMatrixAllocMulf(ARMatf *a, ARMatf *b)
 {
-	ARMatf *dest;
+    ARMatf *dest;
 
-	dest = arMatrixAllocf(a->row, b->clm);
-	if( dest == NULL ) return NULL;
+    dest = arMatrixAllocf(a->row, b->clm);
+    if( dest == NULL ) return NULL;
 
-	if( arMatrixMulf(dest, a, b) < 0 ) {
-		arMatrixFreef(dest);
-		return NULL;
-	}
+    if( arMatrixMulf(dest, a, b) < 0 ) {
+        arMatrixFreef(dest);
+        return NULL;
+    }
 
-	return dest;
+    return dest;
 }
 #endif

@@ -45,7 +45,6 @@
  *
  *******************************************************/
 
-#define _GNU_SOURCE   // asprintf()/vasprintf() on Linux.
 #include <AR/ar.h>
 #include <math.h>
 #include <stdarg.h>

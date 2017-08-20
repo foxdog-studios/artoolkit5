@@ -53,24 +53,24 @@
 int arMatrixMul(ARMat *dest, ARMat *a, ARMat *b)
 {
 #if 0
-	int r, c, i;
+    int r, c, i;
 
-	if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
+    if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
 
-	for(r = 0; r < dest->row; r++) {
-		for(c = 0; c < dest->clm; c++) {
-			ARELEM0(dest, r, c) = 0.0;
-			for(i = 0; i < a->clm; i++) {
-				ARELEM0(dest, r, c) += ARELEM0(a, r, i) * ARELEM0(b, i, c);
-			}
-		}
-	}
+    for(r = 0; r < dest->row; r++) {
+        for(c = 0; c < dest->clm; c++) {
+            ARELEM0(dest, r, c) = 0.0;
+            for(i = 0; i < a->clm; i++) {
+                ARELEM0(dest, r, c) += ARELEM0(a, r, i) * ARELEM0(b, i, c);
+            }
+        }
+    }
 #else
     int       r, c, i;
     ARdouble *p1, *p2, *p3;
-    
+
     if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
-    
+
     p3 = dest->m;
     for(r = 0; r < dest->row; r++) {
         for(c = 0; c < dest->clm; c++) {
@@ -87,31 +87,31 @@ int arMatrixMul(ARMat *dest, ARMat *a, ARMat *b)
     }
 #endif
 
-	return 0;
+    return 0;
 }
 
 #ifndef ARDOUBLE_IS_FLOAT
 int arMatrixMulf(ARMatf *dest, ARMatf *a, ARMatf *b)
 {
 #if 0
-	int r, c, i;
+    int r, c, i;
 
-	if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
+    if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
 
-	for(r = 0; r < dest->row; r++) {
-		for(c = 0; c < dest->clm; c++) {
-			ARELEM0(dest, r, c) = 0.0;
-			for(i = 0; i < a->clm; i++) {
-				ARELEM0(dest, r, c) += ARELEM0(a, r, i) * ARELEM0(b, i, c);
-			}
-		}
-	}
+    for(r = 0; r < dest->row; r++) {
+        for(c = 0; c < dest->clm; c++) {
+            ARELEM0(dest, r, c) = 0.0;
+            for(i = 0; i < a->clm; i++) {
+                ARELEM0(dest, r, c) += ARELEM0(a, r, i) * ARELEM0(b, i, c);
+            }
+        }
+    }
 #else
     int       r, c, i;
     float    *p1, *p2, *p3;
-    
+
     if(a->clm != b->row || dest->row != a->row || dest->clm != b->clm) return -1;
-    
+
     p3 = dest->m;
     for(r = 0; r < dest->row; r++) {
         for(c = 0; c < dest->clm; c++) {
@@ -128,6 +128,6 @@ int arMatrixMulf(ARMatf *dest, ARMatf *a, ARMatf *b)
     }
 #endif
 
-	return 0;
+    return 0;
 }
 #endif
