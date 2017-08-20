@@ -41,23 +41,24 @@
  *   Simon Goodall <sg@ecs.soton.ac.uk>
  */
 
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/time.h> // gettimeofday(), struct timeval
+#include <AR/ar.h>
+#include <AR/video.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <jpeglib.h>
+#include <linux/types.h>
+#include <linux/videodev2.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> // memset()
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/time.h> // gettimeofday(), struct timeval
+#include <sys/types.h>
 #include <time.h>
-#include <errno.h>
-#include <linux/types.h>
-#include <linux/videodev2.h>
-#include <AR/ar.h>
-#include <AR/video.h>
-#include <jpeglib.h>
+#include <unistd.h>
 
 // V4L2 code from https://gist.github.com/jayrambhia/5866483
 static int xioctl(int const fd, int const request, void *const arg)
@@ -400,6 +401,8 @@ int ar2VideoDispOptionV4L2( void )
 }
 
 // XXX: This function leaks badly when an error occurs.
+// Peter 20 Aug 2017: Had a pass over this, leaks less. Not sure if compl
+// fixed.
 AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     AR2VideoParamV4L2T *vid;
     struct v4l2_capability vd;
@@ -411,23 +414,24 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     arMalloc(vid, AR2VideoParamV4L2T, 1);
     strcpy(vid->dev, AR_VIDEO_V4L2_DEFAULT_DEVICE);
 
-    vid->width        = AR_VIDEO_V4L2_DEFAULT_WIDTH;
-    vid->height       = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
-    vid->channel      = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
-    vid->mode         = AR_VIDEO_V4L2_DEFAULT_MODE;
-    vid->format       = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
-    vid->palette      = V4L2_PIX_FMT_YUYV;
-    vid->contrast     = -1;
-    vid->brightness   = -1;
-    vid->saturation   = -1;
-    vid->hue          = -1;
-    vid->gamma        = -1;
-    vid->exposure     = -1;
-    vid->gain         = 1;
-    vid->debug        = 0;
-    vid->process      = NULL;
-    vid->process_data = NULL;
-    vid->videoBuffer  = NULL;
+    vid->width          = AR_VIDEO_V4L2_DEFAULT_WIDTH;
+    vid->height         = AR_VIDEO_V4L2_DEFAULT_HEIGHT;
+    vid->channel        = AR_VIDEO_V4L2_DEFAULT_CHANNEL;
+    vid->mode           = AR_VIDEO_V4L2_DEFAULT_MODE;
+    vid->format         = AR_INPUT_V4L2_DEFAULT_PIXEL_FORMAT;
+    vid->palette        = V4L2_PIX_FMT_YUYV;
+    vid->contrast       = -1;
+    vid->brightness     = -1;
+    vid->saturation     = -1;
+    vid->hue            = -1;
+    vid->gamma          = -1;
+    vid->exposure       = -1;
+    vid->gain           = 1;
+    vid->debug          = 0;
+    vid->process        = NULL;
+    vid->process_data   = NULL;
+    vid->video_cont_num = -1;
+    vid->videoBuffer    = NULL;
 
     a = config;
     if( a != NULL) {
@@ -749,7 +753,6 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         return NULL;
     }
 
-
     // Attempt to set some camera controls
     setControl(vid->fd, V4L2_CID_BRIGHTNESS, vid->brightness);
     setControl(vid->fd, V4L2_CID_CONTRAST, vid->contrast);
@@ -825,38 +828,53 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
         return NULL;
     }
 
-    for (vid->n_buffers = 0; (size_t)vid->n_buffers < req.count; ++vid->n_buffers) {
-        struct v4l2_buffer buf;
-        memset(&buf, 0, sizeof(buf));
-        buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory      = V4L2_MEMORY_MMAP;
-        buf.index       = vid->n_buffers;
+    {
+        bool error = false;
 
-        if (xioctl(vid->fd, VIDIOC_QUERYBUF, &buf)) {
-            close(vid->fd);
-            free(vid->buffers);
-            free(vid->videoBuffer);
-            free(vid->process_data);
-            free(vid);
-            ARLOGe("error VIDIOC_QUERYBUF\n");
-            return NULL;
+        for (vid->n_buffers = 0; (size_t)vid->n_buffers < req.count; ++vid->n_buffers) {
+            struct v4l2_buffer buf;
+            memset(&buf, 0, sizeof(buf));
+            buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory      = V4L2_MEMORY_MMAP;
+
+            int i = vid->n_buffers;
+            buf.index = i;
+
+            if (xioctl(vid->fd, VIDIOC_QUERYBUF, &buf)) {
+                error = true;
+                break;
+            }
+
+            struct buffer_ar_v4l2 *const buffer = vid->buffers + i;
+            buffer->length = buf.length;
+
+            buffer->start = mmap(
+                NULL /* start anywhere */,
+                buf.length,
+                PROT_READ | PROT_WRITE /* required */,
+                MAP_SHARED /* recommended */,
+                vid->fd,
+                buf.m.offset
+            );
+
+            if (buffer->start == MAP_FAILED) {
+                error = true;
+                break;
+            }
         }
 
-        vid->buffers[vid->n_buffers].length = buf.length;
-        vid->buffers[vid->n_buffers].start =
-        mmap (NULL /* start anywhere */,
-              buf.length,
-              PROT_READ | PROT_WRITE /* required */,
-              MAP_SHARED /* recommended */,
-              vid->fd, buf.m.offset);
+        if (error) {
+            for (int i = 0; i < vid->n_buffers; ++i) {
+                struct buffer_ar_v4l2 *const buffer = vid->buffers + i;
+                munmap(buffer->start, buffer->length);
+            }
 
-        if (MAP_FAILED == vid->buffers[vid->n_buffers].start) {
             close(vid->fd);
             free(vid->buffers);
             free(vid->videoBuffer);
             free(vid->process_data);
             free(vid);
-            ARLOGe("Error mmap\n");
+            ARLOGe("Could not allocate memory mapped buffers.\n");
             return NULL;
         }
     }
@@ -865,17 +883,24 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
     return vid;
 }
 
-int ar2VideoCloseV4L2(AR2VideoParamV4L2T *const vid) {
-    if (vid->video_cont_num >= 0) {
-        ar2VideoCapStopV4L2(vid);
+int ar2VideoCloseV4L2(AR2VideoParamV4L2T *const video) {
+    bool error = false;
+
+    for (int i = 0; i < video->n_buffers; ++i) {
+        struct buffer_ar_v4l2 *const buffer = video->buffers + i;
+        error = error || munmap(buffer->start, buffer->length) != 0;
     }
 
-    close(vid->fd);
-    free(vid->videoBuffer);
-    free(vid->process_data);
-    free(vid);
+    if (video->video_cont_num >= 0) {
+        error = error || ar2VideoCapStopV4L2(video) != 0;
+    }
 
-    return 0;
+    error = error || close(video->fd) != 0;
+    free(video->videoBuffer);
+    free(video->process_data);
+    free(video);
+
+    return error ? -1 : 0;
 }
 
 int ar2VideoGetIdV4L2( AR2VideoParamV4L2T *vid, ARUint32 *id0, ARUint32 *id1 )
