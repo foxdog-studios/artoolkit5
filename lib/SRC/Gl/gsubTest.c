@@ -65,7 +65,7 @@ static void   draw( ARdouble trans[3][4] );
 
 int main(int argc, char *argv[])
 {
-	glutInit(&argc, argv);
+        glutInit(&argc, argv);
     init();
     argSetKeyFunc( keyEvent );
     argSetDispFunc( mainLoop, 1 );
@@ -85,18 +85,25 @@ static void   keyEvent( unsigned char key, int x, int y)
 // Report state of ARToolKit tracker.
 static void debugReportMode(ARGViewportHandle *vp)
 {
-	if (vp->dispMethod == AR_GL_DISP_METHOD_GL_DRAW_PIXELS) {
-		ARLOGe("dispMode (d)   : GL_DRAW_PIXELS\n");
-	} else if (vp->dispMethod == AR_GL_DISP_METHOD_TEXTURE_MAPPING_FRAME) {
-		ARLOGe("dispMode (d)   : TEXTURE MAPPING (FULL RESOLUTION)\n");
-	} else {
-		ARLOGe("dispMode (d)   : TEXTURE MAPPING (HALF RESOLUTION)\n");
-	}
+        if (vp->dispMethod == AR_GL_DISP_METHOD_GL_DRAW_PIXELS) {
+                ARLOGe("dispMode (d)   : GL_DRAW_PIXELS\n");
+        } else if (vp->dispMethod == AR_GL_DISP_METHOD_TEXTURE_MAPPING_FRAME) {
+                ARLOGe("dispMode (d)   : TEXTURE MAPPING (FULL RESOLUTION)\n");
+        } else {
+                ARLOGe("dispMode (d)   : TEXTURE MAPPING (HALF RESOLUTION)\n");
+        }
 }
 
 static void mainLoop(void)
 {
-    static AR2VideoBufferT buff = {0};
+    static AR2VideoBufferT buff = {.buff = NULL,
+                                   .bufPlanes = NULL,
+                                   .bufPlaneCount = 0,
+                                   .buffLuma = NULL,
+                                   .fillFlag = 0,
+                                   .time_sec = 0u,
+                                   .time_usec = 0u};
+
     static int          oldImageMode = -1;
     static int          oldDispMode  = -1;
     static int          oldDistMode  = -1;
@@ -231,7 +238,7 @@ static void mainLoop(void)
         argViewportSetDistortionMode( vp, AR_GL_DISTORTION_COMPENSATE_ENABLE );
         oldDistMode = 1;
     }
-   
+
     argDrawMode2D(vp);
     argDrawImage(buff.buff);
 
@@ -278,7 +285,7 @@ static void init( void )
     arParamDisp( &cparam );
     //COVHI10445 ignored as false positive, i.e. cparam->m[3][4] uninitialized.
     cparamLT = arParamLTCreate(&cparam, AR_PARAM_LT_DEFAULT_OFFSET);
-    
+
     arHandle = arCreateHandle(cparamLT);
     if( arHandle == NULL ) {
         ARLOGe("Error: arCreateHandle.\n");
@@ -311,7 +318,7 @@ static void init( void )
 
     argViewportSetDistortionMode( vp, AR_GL_DISTORTION_COMPENSATE_DISABLE );
     //argViewportSetDistortionMode( vp, AR_GL_DISTORTION_COMPENSATE_ENABLE );
-  
+
 #if 0
     if( argSetFullScreenConfig("1024x768") == 0 ) {
         ARLOGe("Full screen is not possible.\n");
@@ -337,7 +344,7 @@ static void cleanup(void)
 static void draw( ARdouble trans[3][4] )
 {
     ARdouble    gl_para[16];
-    
+
     argDrawMode3D(vp);
 
     /* load the camera transformation matrix */
@@ -348,7 +355,7 @@ static void draw( ARdouble trans[3][4] )
 #else
     glLoadMatrixd( gl_para );
 #endif
-    
+
     glColor3f( 1.0f, 1.0f, 0.0f );
     glBegin(GL_LINES);
     glVertex2f( -50.0f, -50.0f );
