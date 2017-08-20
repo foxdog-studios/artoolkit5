@@ -80,17 +80,23 @@ ARHandle *arCreateHandle( ARParamLT *paramLT )
     handle->history_num         = 0;
 
     arMalloc( handle->labelInfo.labelImage, AR_LABELING_LABEL_TYPE, handle->xsize*handle->ysize );
-    
+
     handle->pattHandle = NULL;
-    
+
     arSetPixelFormat(handle, AR_DEFAULT_PIXEL_FORMAT);
 
     arSetDebugMode(handle, AR_DEFAULT_DEBUG_MODE);
-    
+
     handle->arLabelingThreshMode = -1;
     arSetLabelingThreshMode(handle, AR_LABELING_THRESH_MODE_DEFAULT);
     arSetLabelingThreshModeAutoInterval(handle, AR_LABELING_THRESH_AUTO_INTERVAL_DEFAULT);
-    
+
+    for (size_t i = 0; i < AR_SQUARE_MAX; ++i) {
+        ARMarkerInfo *const marker = handle->markerInfo + i;
+        marker->idMatrix = -1;
+        marker->idPatt = -1;
+    }
+
     return handle;
 }
 
@@ -102,7 +108,7 @@ int arDeleteHandle( ARHandle *handle )
         arImageProcFinal(handle->arImageProcInfo);
         handle->arImageProcInfo = NULL;
     }
-    
+
     //if( handle->arParamLT != NULL ) arParamLTFree( &handle->arParamLT );
     free( handle->labelInfo.labelImage );
 #if !AR_DISABLE_LABELING_DEBUG_MODE
@@ -171,7 +177,7 @@ int arSetLabelingThresh( ARHandle *handle, int thresh )
     if( thresh < 0 || thresh > 255 ) return -1;
 
     handle->arLabelingThresh = thresh;
-    
+
     return 0;
 }
 
@@ -187,7 +193,7 @@ int arSetLabelingThreshMode(ARHandle *handle, const AR_LABELING_THRESH_MODE mode
 {
     AR_LABELING_THRESH_MODE mode1;
 
-	if (!handle) return (-1);
+        if (!handle) return (-1);
     if (handle->arLabelingThreshMode != mode) {
         if (handle->arImageProcInfo) {
             arImageProcFinal(handle->arImageProcInfo);
@@ -293,7 +299,7 @@ int arSetPatternDetectionMode( ARHandle *handle, int mode )
 
     return 0;
 }
- 
+
 int  arSetMatrixCodeType(ARHandle *handle, const AR_MATRIX_CODE_TYPE type)
 {
     if (!handle) return (-1);
@@ -346,16 +352,16 @@ int arSetBorderSize( ARHandle *handle, const ARdouble borderSize )
 {
     if( handle == NULL ) return -1;
     if (borderSize <= 0.0 || borderSize >= 0.5) return (-1);
-    
+
     handle->pattRatio = 1.0 - 2.0*borderSize;
-    return 0;    
+    return 0;
 }
 
 int arGetBorderSize( ARHandle *handle, ARdouble *borderSize )
 {
     if( handle == NULL ) return -1;
     *borderSize = (1.0 - handle->pattRatio)*0.5;
-    
+
     return 0;
 }
 
@@ -363,7 +369,7 @@ int arSetPattRatio( ARHandle *handle, const ARdouble pattRatio )
 {
     if( handle == NULL ) return -1;
     if (pattRatio <= 0.0 || pattRatio >= 1.0) return (-1);
-    
+
     handle->pattRatio = pattRatio;
     return 0;
 }
@@ -372,14 +378,14 @@ int arGetPattRatio( ARHandle *handle, ARdouble *pattRatio )
 {
     if( handle == NULL ) return -1;
     *pattRatio = handle->pattRatio;
-    
+
     return 0;
 }
 
 int arSetPixelFormat( ARHandle *handle, AR_PIXEL_FORMAT pixFormat )
 {
     int monoFormat;
-    
+
     if (handle == NULL) return (-1);
     if (pixFormat == handle->arPixelFormat) return (0);
 
@@ -410,13 +416,13 @@ int arSetPixelFormat( ARHandle *handle, AR_PIXEL_FORMAT pixFormat )
 
     handle->arPixelFormat = pixFormat;
     handle->arPixelSize   = arUtilGetPixelSize(handle->arPixelFormat);
-    
+
     // Update handle settings that depend on pixel format.
     if (handle->arImageProcInfo) {
         arImageProcFinal(handle->arImageProcInfo);
         handle->arImageProcInfo = arImageProcInit(handle->xsize, handle->ysize, handle->arPixelFormat, 0);
     }
-    
+
     // If template matching, automatically switch to these most suitable colour template matching mode.
     if (monoFormat) {
         if (handle->arPatternDetectionMode == AR_TEMPLATE_MATCHING_COLOR) handle->arPatternDetectionMode = AR_TEMPLATE_MATCHING_MONO;
@@ -425,7 +431,7 @@ int arSetPixelFormat( ARHandle *handle, AR_PIXEL_FORMAT pixFormat )
         if (handle->arPatternDetectionMode == AR_TEMPLATE_MATCHING_MONO) handle->arPatternDetectionMode = AR_TEMPLATE_MATCHING_MONO_AND_MATRIX;
         else if (handle->arPatternDetectionMode == AR_TEMPLATE_MATCHING_MONO_AND_MATRIX) handle->arPatternDetectionMode = AR_TEMPLATE_MATCHING_COLOR_AND_MATRIX;
     }
-    
+
     return 0;
 }
 
