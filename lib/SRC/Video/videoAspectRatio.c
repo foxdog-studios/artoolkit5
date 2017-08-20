@@ -33,11 +33,10 @@
  *
  */
 
-#define _GNU_SOURCE
-
-#include <AR/video.h>
 #include <stdio.h> // asprintf()
 #include <string.h> // strdup()
+
+#include <AR/video.h>
 
 struct _ASPECT_RATIOS_ENTRY {
     int width;

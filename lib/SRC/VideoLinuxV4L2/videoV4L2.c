@@ -71,8 +71,6 @@ static int xioctl(int const fd, int const request, void *const arg)
     return r;
 }
 
-#define MAXCHANNEL   10
-
 static void printPalette(int const pixelFormat) {
     char *name;
 
@@ -314,14 +312,20 @@ static int yuyv_to_bgra(AR2VideoParamV4L2T const *const video) {
     return 0;
 }
 
-static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
-    ARUint8 const *const buffer = get_src_buffer(video);
-    struct jpeg_decompress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+static struct jpeg_decompress_struct cinfo;
+static struct jpeg_error_mgr jerr;
 
+static void init_jpeg() {
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
-    jpeg_mem_src(&cinfo, buffer, get_size(video));
+}
+
+static void deinit_jpeg() {
+    jpeg_destroy_decompress(&cinfo);
+}
+
+static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
+    jpeg_mem_src(&cinfo, get_src_buffer(video), get_size(video));
 
     int rc = jpeg_read_header(&cinfo, TRUE);
     if (rc != 1) {
@@ -343,7 +347,6 @@ static int mjpeg_to_brg(AR2VideoParamV4L2T const *const video) {
     }
 
     jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
     return 0;
 }
 /*-------------------------------------------*/
@@ -641,6 +644,7 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
 
         case V4L2_PIX_FMT_MJPEG:
             if (vid->format == AR_PIXEL_FORMAT_BGR) {
+                init_jpeg();
                 vid->process_frame = mjpeg_to_brg;
             }
             break;
@@ -802,6 +806,11 @@ int ar2VideoCloseV4L2( AR2VideoParamV4L2T *vid )
     if (vid->video_cont_num >= 0){
         ar2VideoCapStopV4L2( vid );
     }
+
+    if (vid->palette == V4L2_PIX_FMT_MJPEG) {
+        deinit_jpeg();
+    }
+
     close(vid->fd);
     free(vid->videoBuffer);
     free(vid);
