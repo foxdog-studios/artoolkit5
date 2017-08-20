@@ -886,15 +886,16 @@ AR2VideoParamV4L2T *ar2VideoOpenV4L2(char const *const config) {
 int ar2VideoCloseV4L2(AR2VideoParamV4L2T *const video) {
     bool error = false;
 
+    if (video->video_cont_num >= 0) {
+        error = error || ar2VideoCapStopV4L2(video) != 0;
+    }
+
     for (int i = 0; i < video->n_buffers; ++i) {
         struct buffer_ar_v4l2 *const buffer = video->buffers + i;
         error = error || munmap(buffer->start, buffer->length) != 0;
     }
 
-    if (video->video_cont_num >= 0) {
-        error = error || ar2VideoCapStopV4L2(video) != 0;
-    }
-
+    free(video->buffers);
     error = error || close(video->fd) != 0;
     free(video->videoBuffer);
     free(video->process_data);
