@@ -47,7 +47,7 @@
 #define     K2_FACTOR     4.0f
 #endif
 
-static void   icpGetXw2XcCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 );
+static void   icpGetXw2XcRobustCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 );
 static int    compE(const void *a, const void *b );
 
 int icpPointRobust( ICPHandleT   *handle,
@@ -106,7 +106,7 @@ int icpPointRobust( ICPHandleT   *handle,
 
         for( j = 0; j < data->num; j++ ) {
             if( icpGetU_from_X_by_MatX2U( &U, matXw2U, &(data->worldCoord[j]) ) < 0 ) {
-                icpGetXw2XcCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
+                icpGetXw2XcRobustCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
                 return -1;
             }
             dx = data->screenCoord[j].x - U.x;
@@ -139,7 +139,7 @@ int icpPointRobust( ICPHandleT   *handle,
         for( j = 0; j < data->num; j++ ) {
             if( E[j] <= K2 ) {
                 if( icpGetJ_U_S( (ARdouble (*)[6])(&J_U_S[6*k]), handle->matXc2U, matXw2Xc, &(data->worldCoord[j]) ) < 0 ) {
-                    icpGetXw2XcCleanup("icpGetJ_U_S", J_U_S, dU, E, E2);
+                    icpGetXw2XcRobustCleanup("icpGetJ_U_S", J_U_S, dU, E, E2);
                     return -1;
                 }
 #if ICP_DEBUG
@@ -165,12 +165,12 @@ int icpPointRobust( ICPHandleT   *handle,
         }
 
         if( k < 6 ) {
-            icpGetXw2XcCleanup("icpPointRobust: k < 6",J_U_S,dU,E,E2);
+            icpGetXw2XcRobustCleanup("icpPointRobust: k < 6",J_U_S,dU,E,E2);
             return -1;
         }
 
         if( icpGetDeltaS( dS, dU, (ARdouble (*)[6])J_U_S, k ) < 0 ) {
-            icpGetXw2XcCleanup("icpGetDeltaS",J_U_S,dU,E,E2);
+            icpGetXw2XcRobustCleanup("icpGetDeltaS",J_U_S,dU,E,E2);
             return -1;
         }
 
@@ -191,7 +191,7 @@ int icpPointRobust( ICPHandleT   *handle,
     return 0;
 }
 
-static void icpGetXw2XcCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 )
+static void icpGetXw2XcRobustCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 )
 {
     ARLOGd("Error: %s\n", message);
     free(J_U_S);

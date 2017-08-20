@@ -10,10 +10,9 @@ ar_icp_files = files(
     'icpUtil.c',
 )
 
-ar_icp_lib = library(
-    'ARICP',
-    ar_icp_files,
+ar_icp_lib = library('ARICP', ar_icp_files,
     link_with : ar_lib,
     include_directories : ar_includes,
     dependencies : math_dep,
+    override_options : 'unity=on',
 )

@@ -43,8 +43,8 @@
 
 #define     K2_FACTOR     4.0
 
-static void   icpStereoGetXw2XcCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 );
-static int    compE( const void *a, const void *b );
+static void   icpStereoGetXw2XcRobustCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 );
+static int    compERobust( const void *a, const void *b );
 
 int icpStereoPointRobust( ICPStereoHandleT *handle,
                           ICPStereoDataT   *data,
@@ -111,7 +111,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
 
         for( j = 0; j < data->numL; j++ ) {
             if( icpGetU_from_X_by_MatX2U( &U, matXw2Ul, &(data->worldCoordL[j]) ) < 0 ) {
-                icpStereoGetXw2XcCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
+                icpStereoGetXw2XcRobustCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
                 return -1;
             }
             dx = data->screenCoordL[j].x - U.x;
@@ -122,7 +122,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
         }   
         for( j = 0; j < data->numR; j++ ) {
             if( icpGetU_from_X_by_MatX2U( &U, matXw2Ur, &(data->worldCoordR[j]) ) < 0 ) {
-                icpStereoGetXw2XcCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
+                icpStereoGetXw2XcRobustCleanup("icpGetU_from_X_by_MatX2U",J_U_S,dU,E,E2);
                 return -1;
             }
             dx = data->screenCoordR[j].x - U.x;
@@ -131,7 +131,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
             dU[(data->numL+j)*2+1] = dy;
             E[data->numL+j] = E2[data->numL+j] = dx*dx + dy*dy;
         }
-        qsort(E2, (data->numL + data->numR), sizeof(ARdouble), compE);
+        qsort(E2, (data->numL + data->numR), sizeof(ARdouble), compERobust);
         K2 = E2[inlierNum] * K2_FACTOR;
         if( K2 < 16.0 ) K2 = 16.0;
 
@@ -157,7 +157,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
         for( j = 0; j < data->numL; j++ ) {
             if( E[j] <= K2 ) {
                 if( icpGetJ_U_S( (ARdouble (*)[6])(&J_U_S[6*k]), matXc2Ul, matXw2Xc, &(data->worldCoordL[j]) ) < 0 ) {
-                    icpStereoGetXw2XcCleanup("icpGetJ_U_S",J_U_S,dU,E,E2);
+                    icpStereoGetXw2XcRobustCleanup("icpGetJ_U_S",J_U_S,dU,E,E2);
                     return -1; 
                 }
 #if ICP_DEBUG
@@ -193,7 +193,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
         for( j = 0; j < data->numR; j++ ) {
             if( E[data->numL+j] <= K2 ) {
                 if( icpGetJ_U_S( (ARdouble (*)[6])(&J_U_S[6*k]), matXc2Ur, matXw2Xc, &(data->worldCoordR[j]) ) < 0 ) {
-                    icpStereoGetXw2XcCleanup("icpGetJ_U_S",J_U_S,dU,E,E2);
+                    icpStereoGetXw2XcRobustCleanup("icpGetJ_U_S",J_U_S,dU,E,E2);
                     return -1; 
                 }
 #if ICP_DEBUG
@@ -226,12 +226,12 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
 
         if( k < 6 ) {
             //COVHI10425, COVHI10406, COVHI10393, COVHI10325
-            icpStereoGetXw2XcCleanup("icpStereoPointRobust(), if (k < 6)", J_U_S, dU, E, E2);
+            icpStereoGetXw2XcRobustCleanup("icpStereoPointRobust(), if (k < 6)", J_U_S, dU, E, E2);
             return -1;
         }
 
         if( icpGetDeltaS( dS, dU, (ARdouble (*)[6])J_U_S, k ) < 0 ) {
-            icpStereoGetXw2XcCleanup("icpGetS",J_U_S,dU,E,E2);
+            icpStereoGetXw2XcRobustCleanup("icpGetS",J_U_S,dU,E,E2);
             return -1;
         }
 
@@ -252,7 +252,7 @@ int icpStereoPointRobust( ICPStereoHandleT *handle,
     return 0;
 }
 
-static void icpStereoGetXw2XcCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 )
+static void icpStereoGetXw2XcRobustCleanup( char *message, ARdouble *J_U_S, ARdouble *dU, ARdouble *E, ARdouble *E2 )
 {
     ARLOGd("Error: %s\n", message);
     free(J_U_S);
@@ -261,7 +261,7 @@ static void icpStereoGetXw2XcCleanup( char *message, ARdouble *J_U_S, ARdouble *
     free(E2);
 }
 
-static int compE( const void *a, const void *b )
+static int compERobust( const void *a, const void *b )
 {
     ARdouble  c;
     c = *(ARdouble *)a - *(ARdouble *)b;
