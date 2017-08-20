@@ -17,10 +17,8 @@ ar2_files = files(
     'util.c',
 )
 
-ar2_lib = library(
-    'AR2', ar2_files,
+ar2_lib = library('AR2', ar2_files,
     link_with : [ar_lib, ar_icp_lib, ar_util_lib],
     include_directories : ar_includes,
     dependencies : [libjpeg_dep, math_dep],
-    override_options : 'unity=on',
 )
