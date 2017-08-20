@@ -46,76 +46,63 @@
  *******************************************************/
 
 #include <AR/ar.h>
-#include <stdio.h>
-#include <math.h>
 
-ARPattHandle *arPattCreateHandle(void)
-{
-    return (arPattCreateHandle2(AR_PATT_SIZE1, AR_PATT_NUM_MAX));
+ARPattHandle *arPattCreateHandle(void) {
+    return arPattCreateHandle2(AR_PATT_SIZE1, AR_PATT_NUM_MAX);
 }
 
-ARPattHandle *arPattCreateHandle2(const int pattSize, const int patternCountMax)
-{
-    ARPattHandle  *pattHandle;
-    int            i, j;
+ARPattHandle *arPattCreateHandle2(int const pattSize,
+                                  int const patternCountMax) {
+    ARPattHandle *pattHandle;
 
-    if (pattSize < 16 || pattSize > AR_PATT_SIZE1_MAX || patternCountMax <= 0) return NULL;
+    if (pattSize < 16 || pattSize > AR_PATT_SIZE1_MAX || patternCountMax <= 0) {
+        return NULL;
+    }
 
-    arMalloc( pattHandle, ARPattHandle, 1 );
+    arMalloc(pattHandle, ARPattHandle, 1);
 
     pattHandle->patt_num = 0;
     pattHandle->patt_num_max = patternCountMax;
-    //pattHandle->pattRatio = AR_PATT_RATIO;
     pattHandle->pattSize = pattSize;
 
     arMalloc(pattHandle->pattf, int, patternCountMax);
-    arMalloc(pattHandle->patt, int *, patternCountMax*4)
-    arMalloc(pattHandle->pattBW, int *, patternCountMax*4)
-    arMalloc(pattHandle->pattpow, ARdouble, patternCountMax*4)
-    arMalloc(pattHandle->pattpowBW, ARdouble, patternCountMax*4)
-    for (i = 0; i < patternCountMax; i++) {
+    arMalloc(pattHandle->patt, int *, patternCountMax * 4);
+    arMalloc(pattHandle->pattBW, int *, patternCountMax * 4);
+    arMalloc(pattHandle->pattpow, ARdouble, patternCountMax * 4);
+    arMalloc(pattHandle->pattpowBW, ARdouble, patternCountMax * 4);
+
+    for (int i = 0; i < patternCountMax; i++) {
         pattHandle->pattf[i] = 0;
-        for (j = 0; j < 4; j++) {
-            arMalloc(pattHandle->patt[i*4 + j], int, pattSize*pattSize*3);
-            arMalloc(pattHandle->pattBW[i*4 + j], int, pattSize*pattSize);
+        for (size_t j = 0; j < 4; j++) {
+            arMalloc(pattHandle->patt[i * 4 + j], int, pattSize *pattSize * 3);
+            arMalloc(pattHandle->pattBW[i * 4 + j], int, pattSize *pattSize);
         }
     }
 
     return pattHandle;
 }
 
-int arPattDeleteHandle(ARPattHandle *pattHandle)
-{
-        int i, j;
+int arPattDeleteHandle(ARPattHandle *const handle) {
+    if (handle == NULL) {
+        return -1;
+    }
 
-        if (pattHandle == NULL) return (-1);
-
-    for (i = 0; i < pattHandle->patt_num_max; i++) {
-                if (pattHandle->pattf[i] != 0) arPattFree(pattHandle, i);
-        for (j = 0; j < 4; j++) {
-            free(pattHandle->patt[i*4 + j]);
-            free(pattHandle->pattBW[i*4 + j]);
+    for (int i = 0; i < handle->patt_num_max; ++i) {
+        if (handle->pattf[i] != 0) {
+            arPattFree(handle, i);
         }
+
+        for (size_t j = 0; j < 4; ++j) {
+            free(handle->patt[i * 4 + j]);
+            free(handle->pattBW[i * 4 + j]);
         }
-        free(pattHandle);
-        pattHandle = NULL;
+    }
 
-        return (0);
-}
-
-/*
-int arPattGetPattRatio( ARPattHandle *pattHandle, float *ratio )
-{
-    if( pattHandle == NULL ) return -1;
-    *ratio = pattHandle->pattRatio;
+    free(handle->pattpowBW);
+    free(handle->pattpow);
+    free(handle->pattBW);
+    free(handle->patt);
+    free(handle->pattf);
+    free(handle);
     return 0;
 }
-
-int arPattSetPattRatio( ARPattHandle *pattHandle, float  ratio )
-{
-    if( pattHandle == NULL ) return -1;
-    if( ratio <= 0.0 || ratio >= 1.0 ) return -1;
-    pattHandle->pattRatio = ratio;
-    return 0;
-}
-*/
